@@ -1,0 +1,5 @@
+#!python caalc.py
+2 + 2 * 2
+a = 12 # OK?
+
+a + 14

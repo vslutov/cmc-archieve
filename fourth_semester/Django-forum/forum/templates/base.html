@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{% block title %} PAGE {% endblock %} - forum</title>
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+  </head>
+  <body>
+
+    <nav class="navbar navbar-default">
+      <div class="container">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="/forum/">Tworum</a>
+        </div>
+        {% if user.is_authenticated %}
+          <p class="navbar-text">Signed in as {{ user }}</p>
+          <form class="navbar-form navbar-left" action="/logout/" method="get">
+            <button type="submit" class="btn btn-default">Logout</button>
+          </form>
+        {% else %}
+          <form class="navbar-form navbar-left hidden-xs hidden-sm" action="/login/" method="post">
+            <div class="form-group">
+              <input type="email" name="email" class="form-control" placeholder="E-mail">
+            </div>
+            <div class="form-group">
+              <input type="password" name="password" class="form-control" placeholder="Password">
+            </div>
+            <button type="submit" class="btn btn-primary" formaction="/login/">Login</button>
+            or <a href="/register/">Register</a>
+          </form>
+          <ul class="nav navbar-nav hidden-md hidden-lg">
+            <li><a href="/login/">Login</a></li>
+            <li><a href="/register/">Register</a></li>
+          </ul>
+        {% endif %}
+      </div>
+    </nav>
+
+    <div class="container">
+      <header class="page-header">
+        <h1>{% block header %} HEADER {% endblock %}</h1>
+      </header>
+
+      {% if errors %}
+        <div class="row">
+          <div class="col-md-12">
+            <div class="alert alert-danger">{{ errors }}</div>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if success %}
+        <div class="row">
+          <div class="col-md-12">
+            <div class="alert alert-success">{{ success }}</div>
+          </div>
+        </div>
+      {% endif %}
+
+      {% block content %} CONTENT {% endblock %}
+    </div>
+
+  </body>
+</html>
