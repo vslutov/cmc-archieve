@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>
+<nta>
+	<declaration>// Place global declarations here.
+broadcast chan tick;
+int time = 0;
+int cpu_time[3] = {0, 0, 0};
+int tasks[3] = {0, 0, 0};
+int ready[11] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+int work[11] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+int standby[11] = {0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
+int delay = 0;</declaration>
+	<template>
+		<name x="5" y="5">CPU</name>
+		<parameter>int cpu_id</parameter>
+		<declaration>void
+ProcessorStep()
+{
+  if (cpu_time[cpu_id] &gt; 0) {
+    -- cpu_time[cpu_id];
+    if (cpu_time[cpu_id] == 0) {
+      work[tasks[cpu_id]] += 1;
+      standby[tasks[cpu_id]] = 1;
+    }
+  } else {
+    ++ delay;
+  }
+}</declaration>
+		<location id="id0" x="16" y="-40">
+		</location>
+		<init ref="id0"/>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id0"/>
+			<label kind="synchronisation" x="168" y="-64">tick?</label>
+			<label kind="assignment" x="168" y="-40">ProcessorStep()</label>
+			<nail x="152" y="-80"/>
+			<nail x="152" y="0"/>
+		</transition>
+	</template>
+	<template>
+		<name>HotStandby</name>
+		<parameter>int cpu_id</parameter>
+		<declaration>void
+ProcessorStep()
+{
+  if (cpu_time[cpu_id] &gt; 0) {
+    -- cpu_time[cpu_id];
+    if (cpu_time[cpu_id] == 0) {
+      work[tasks[cpu_id]] += 1;
+      standby[tasks[cpu_id]] = 1;
+    }
+  } else {
+    ++ delay;
+  }
+}</declaration>
+		<location id="id1" x="0" y="0">
+		</location>
+		<init ref="id1"/>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id1"/>
+			<label kind="guard" x="136" y="-51">time != 15</label>
+			<label kind="synchronisation" x="136" y="-25">tick?</label>
+			<label kind="assignment" x="136" y="0">ProcessorStep()</label>
+			<nail x="126" y="-68"/>
+			<nail x="126" y="34"/>
+		</transition>
+	</template>
+	<template>
+		<name>Timer</name>
+		<declaration>int
+check()
+{
+  return (cpu_time[0] &gt; 0 &amp;&amp; cpu_time[0] &gt; 0 &amp;&amp; cpu_time[0] &gt; 0) || !(standby[0] || standby[1] || standby[2] || standby[3] || standby[4] || standby[5] || standby[6] || standby[7] || standby[8] || standby[9]  || standby[10]);
+}</declaration>
+		<location id="id2" x="0" y="0">
+			<label kind="invariant" x="-112" y="-8">delay &lt;= 20</label>
+		</location>
+		<init ref="id2"/>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id2"/>
+			<label kind="guard" x="96" y="-48">check()</label>
+			<label kind="synchronisation" x="96" y="-16">tick!</label>
+			<label kind="assignment" x="96" y="8">++ time</label>
+			<nail x="88" y="-72"/>
+			<nail x="88" y="48"/>
+		</transition>
+	</template>
+	<template>
+		<name>Task</name>
+		<parameter>int task_id, int dep1, int dep2, int cpu_time_0, int cpu_time_1, int cpu_time_2</parameter>
+		<declaration>int cpu_id = -1;</declaration>
+		<location id="id3" x="-296" y="16">
+		</location>
+		<location id="id4" x="320" y="24">
+		</location>
+		<location id="id5" x="72" y="24">
+		</location>
+		<location id="id6" x="-456" y="16">
+		</location>
+		<init ref="id6"/>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id5"/>
+			<label kind="guard" x="-216" y="120">cpu_time[2] == 0</label>
+			<label kind="assignment" x="-216" y="152">cpu_time[2] = cpu_time_2,
+tasks[2] = task_id,
+cpu_id = 2,
+standby[task_id] = 0</label>
+			<nail x="-296" y="144"/>
+			<nail x="72" y="144"/>
+		</transition>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id5"/>
+			<label kind="guard" x="-172" y="-10">cpu_time[1] == 0</label>
+			<label kind="assignment" x="-172" y="20">cpu_time[1] = cpu_time_1,
+tasks[1] = task_id,
+cpu_id = 1,
+standby[task_id] = 0</label>
+		</transition>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id5"/>
+			<label kind="guard" x="-208" y="-112">cpu_time[0] == 0</label>
+			<label kind="assignment" x="-208" y="-80">cpu_time[0] = cpu_time_0,
+tasks[0] = task_id,
+cpu_id = 0,
+standby[task_id] = 0</label>
+			<nail x="-296" y="-88"/>
+			<nail x="72" y="-88"/>
+		</transition>
+		<transition>
+			<source ref="id6"/>
+			<target ref="id3"/>
+			<label kind="guard" x="-442" y="-8">ready[dep1] &amp;&amp; ready[dep2]</label>
+			<label kind="assignment" x="-442" y="25">standby[task_id] = 1</label>
+		</transition>
+		<transition>
+			<source ref="id5"/>
+			<target ref="id4"/>
+			<label kind="guard" x="128" y="0">work[task_id] == 1</label>
+			<label kind="assignment" x="136" y="32">ready[task_id] = 1,
+standby[task_id] = 0</label>
+		</transition>
+	</template>
+	<template>
+		<name>NVP</name>
+		<parameter>int task_id, int dep1, int dep2, int cpu_time_0, int cpu_time_1, int cpu_time_2</parameter>
+		<declaration>int cpu_sent[3] = {0, 0, 0};</declaration>
+		<location id="id7" x="-488" y="-224">
+		</location>
+		<location id="id8" x="-768" y="-128">
+		</location>
+		<location id="id9" x="-1040" y="-128">
+		</location>
+		<init ref="id9"/>
+		<transition>
+			<source ref="id8"/>
+			<target ref="id7"/>
+			<label kind="guard" x="-600" y="-288">work[task_id] == 3</label>
+			<label kind="assignment" x="-600" y="-272">ready[task_id] = 1</label>
+		</transition>
+		<transition>
+			<source ref="id8"/>
+			<target ref="id8"/>
+			<label kind="guard" x="-832" y="48">cpu_time[2] == 0 &amp;&amp;
+cpu_sent[2] == 0</label>
+			<label kind="assignment" x="-832" y="80">cpu_time[2] = cpu_time_2,
+tasks[2] = task_id,
+cpu_sent[2] = 1</label>
+			<nail x="-768" y="48"/>
+			<nail x="-648" y="48"/>
+		</transition>
+		<transition>
+			<source ref="id8"/>
+			<target ref="id8"/>
+			<label kind="guard" x="-536" y="-128">cpu_time[1] == 0 &amp;&amp;
+cpu_sent[1] == 0</label>
+			<label kind="assignment" x="-536" y="-88">cpu_time[1] = cpu_time_1,
+tasks[1] = task_id,
+cpu_sent[1] = 1</label>
+			<nail x="-536" y="-128"/>
+			<nail x="-544" y="-24"/>
+		</transition>
+		<transition>
+			<source ref="id8"/>
+			<target ref="id8"/>
+			<label kind="guard" x="-752" y="-376">cpu_time[0] == 0 &amp;&amp;
+cpu_sent[0] == 0</label>
+			<label kind="assignment" x="-752" y="-328">cpu_time[0] = cpu_time_0,
+tasks[0] = task_id,
+cpu_sent[0] = 1</label>
+			<nail x="-768" y="-336"/>
+			<nail x="-560" y="-336"/>
+		</transition>
+		<transition>
+			<source ref="id9"/>
+			<target ref="id8"/>
+			<label kind="guard" x="-1008" y="-152">ready[dep1] &amp;&amp; ready[dep2]</label>
+			<label kind="assignment" x="-1011" y="-119">standby[task_id] = 1</label>
+		</transition>
+	</template>
+	<system>// Place template instantiations here.
+cpu_0 = HotStandby(0);
+cpu_1 = CPU(1);
+cpu_2 = CPU(2);
+timer = Timer();
+
+A = Task(1, 0, 0, 1, 4, 4);
+B = Task(2, 0, 0, 7, 7, 2);
+C = Task(3, 2, 0, 8, 8, 8);
+D = Task(4, 1, 2, 4, 5, 6);
+E = Task(5, 2, 0, 6, 1, 1);
+F = NVP(6, 3, 0, 11, 8, 9);
+G = Task(7, 3, 4, 14, 15, 12);
+H = Task(8, 5, 7, 5, 2, 1);
+I = Task(9, 5, 0, 5, 6, 7);
+CHECK = Task(10, 6, 0, 3, 3, 3);
+
+// List one or more processes to be composed into a system.
+system A, B, C, D, E, F, G, H, I, CHECK, cpu_0, cpu_1, cpu_2, timer;</system>
+	<queries>
+		<query>
+			<formula>A[] not deadlock
+			</formula>
+			<comment>
+			</comment>
+		</query>
+		<query>
+			<formula>E&lt;&gt; ready[1] &amp;&amp; ready[2] &amp;&amp; ready[3] &amp;&amp; ready[4] &amp;&amp; ready[5] &amp;&amp; ready[6] &amp;&amp; ready[7] &amp;&amp; ready[8] &amp;&amp; ready[9] &amp;&amp; ready[10] &amp;&amp; delay &lt; 21
+			</formula>
+			<comment>
+			</comment>
+		</query>
+		<query>
+			<formula>E&lt;&gt; ready[1] &amp;&amp; ready[2] &amp;&amp; ready[3] &amp;&amp; ready[4] &amp;&amp; ready[5] &amp;&amp; ready[6] &amp;&amp; ready[7] &amp;&amp; ready[8] &amp;&amp; ready[9] &amp;&amp; ready[10] &amp;&amp; delay &lt; 20
+			</formula>
+			<comment>
+			</comment>
+		</query>
+	</queries>
+</nta>

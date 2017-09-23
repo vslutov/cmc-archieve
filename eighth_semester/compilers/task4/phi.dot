@@ -1,0 +1,32 @@
+digraph G{
+  node [shape=box, fontname=Courier, fontsize=10];
+  Entry [label="Entry"]
+
+  B1 [label="Блок B1\nB:\l(1)  goto S\l"]
+  B3 [label="Блок B3\nS:\l(3) t1 <- -, n, k\l(4) t <- +, 1, t1\l(5) i <- -, k, 1\l"]
+  B4 [label="Блок B4\nF:\l()  i <- φ(i, i)\l(6) ifFalse i >= 0 goto AF\l"]
+  B5 [label="Блок B5\nI:\l(7) t2 <- a[i]\l(8) t3 <- +, t, i\l(9) ifFalse t2 < t3 goto AI\l"]
+  B6 [label="Блок B6\n(10) t4 <- +, t2, 1\l(11) a[i] <- t4\l(12) j <- +, i, 1\l"]
+  B7 [label="Блок B7\nF2:\l()   j <- φ(j, j)\l()   a <- φ(a, a)\l(13) ifFalse j < k goto AF2\l"]
+  B8 [label="Блок B8\n(14) t9 <- -, j, 1\l(15) t8 <- a[t9]\l(16) a[j] <- +, 1, t8\l(17) j <- +, j, 1\l(18) goto F2\l"]
+  B9 [label="Блок B9\nAF2:\l(19) return 1\l"]
+  B10 [label="Блок B10\nAI:\l(20) i <- -, i, 1\l(23) goto F\l"]
+  B11 [label="Блок B11\nAF:\l(24) return 0\l"]
+
+  Exit [ label = "Exit" ]
+
+  Entry -> B1
+  B1 -> B3
+  B3 -> B4
+  B4 -> B5
+  B5 -> B6
+  B6 -> B7
+  B7 -> B8
+  B8 -> B7
+  B7 -> B9
+  B9 -> Exit
+  B5 -> B10
+  B10 -> B4
+  B4 -> B11
+  B11 -> Exit
+}
