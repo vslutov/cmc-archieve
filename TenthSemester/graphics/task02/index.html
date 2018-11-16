@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <title>Lutov path tracer</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      .d-none {
+        display: none;
+      }
+      .p-relative {
+        position: relative;
+      }
+      .p-absolute {
+        position: absolute;
+      }
+      .b-black{
+        background: black;
+        color: #7CFC00;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="p-relative">
+      <canvas id="webglCanvas" class="d-none" width="800" height="600"></canvas>
+      <canvas id="viewCanvas" class="p-absolute" width="800" height="600"></canvas>
+      <div class="p-absolute b-black">
+        <form action="#">
+          <p><b>[Mouse] Rotate scene</b>
+          </p>
+          <p><b>Progressive rendering</b><br>
+            <button id="nextStep" type="button">Next step</button><br>
+            <label><input type="checkbox" name="continueCalculation"> Continue rendering</label>
+          </p>
+          <p><b>Mode</b><br>
+            <label><input name="mode" type="radio" value="baseline"> Baseline<label><br>
+            <label><input name="mode" type="radio" value="explicitDirection"> Explicit direction to light<label><br>
+            <label><input name="mode" type="radio" value="mixed"> Multiple Importance Sampling<label>
+          </p>
+        </form>
+      </div>
+    </div>
+    <script>
+      (function(){
+        const EPS = 1e-5
+        const TO_RADIANS = Math.PI / 180.0
+        const FOV = 35.0 * TO_RADIANS
+
+        const VERTEX_SHADER = `
+          attribute vec2 vertexPosition;
+
+          void main() {
+            gl_Position = vec4(vertexPosition,
+                               0.0,
+                               1.0
+                              );
+          }
+        `
+
+        const processLight = {
+          baseline: `
+            result.color = hit.light * hit.baseColor;
+          `,
+          explicitDirection: `
+            result.color = vec3(0);
+          `,
+          mixed: `
+            lowp float pl = hit.t * hit.t / (PT_SOURCE_AREA * dot(hit.initDirection, -hit.norm));
+            result.color = pi * pi / (pi * pi + pl * pl) * hit.light * hit.baseColor;
+          `
+        }
+
+        const processDiffuse = {
+          baseline: `
+            result.nextDirection = sampleHemisphere(hit.norm, 1.0, seedNoise);
+            result.filterMultiplier = hit.transportProbability * hit.diffuse * hit.baseColor;
+          `,
+          explicitDirection: `
+            result.nextDirection = sampleHemisphere(hit.norm, 1.0, seedNoise);
+            result.filterMultiplier = hit.transportProbability * hit.diffuse * hit.baseColor;
+
+            mediump vec3 sampledSource = PT_SOURCE_COORD + PT_SOURCE_SIZE *
+                                         PT_SOURCE_ROTATE * vrand(seedNoise);
+            mediump vec3 lightDir = normalize(sampledSource - result.nextStart);
+            Hit lightHit = rayTrace(result.nextStart, lightDir, hit.initRefractionCoef);
+
+            mediump float lambertian = max(dot(lightDir, hit.norm), 0.0);
+            result.color += hit.transportProbability * hit.baseColor * hit.diffuse * lambertian * PT_SOURCE_AREA * dot(lightHit.norm, -lightDir) * lightHit.light / (lightHit.t * lightHit.t);
+            seedNoise += fract(10.0 * (lightHit.pos.xy + lightHit.pos.yz));
+          `,
+          mixed: `
+            result.nextDirection = sampleHemisphere(hit.norm, 1.0, seedNoise);
+            result.filterMultiplier = hit.transportProbability * hit.diffuse * hit.baseColor;
+
+            mediump vec3 sampledSource = PT_SOURCE_COORD + PT_SOURCE_SIZE *
+                                         PT_SOURCE_ROTATE * vrand(seedNoise);
+            mediump vec3 lightDir = normalize(sampledSource - result.nextStart);
+            Hit lightHit = rayTrace(result.nextStart, lightDir, hit.initRefractionCoef);
+
+            mediump float lambertian = max(dot(lightDir, hit.norm), 0.0);
+
+            lowp float pl = lightHit.t * lightHit.t / (PT_SOURCE_AREA * dot(lightHit.norm, -lightDir));
+            result.pi = dot(result.nextDirection, hit.norm) / M_PI;
+            lowp vec3 lightColor = hit.transportProbability * hit.baseColor * hit.diffuse * lambertian / pl * lightHit.light;
+
+            result.color += pl * pl / (pl * pl + result.pi * result.pi) * lightColor;
+
+            seedNoise += fract(10.0 * (lightHit.pos.xy + lightHit.pos.yz));
+          `
+        }
+
+        const ptSteps = {
+          baseline: 30,
+          explicitDirection: 5,
+          mixed: 5
+        }
+
+        const resultModification = {
+          baseline: ``,
+          explicitDirection: ` * (1.0 / float(PT_DEPTH))`,
+          mixed: ` * (1.0 / float(PT_DEPTH))`
+        }
+
+        const genFragmentShader = (state) => `
+          #define M_PI 3.1415926535897932384626433832795
+
+          uniform mediump vec3 cameraPos;
+          uniform mediump vec2 initMult;
+          uniform mediump mat3 initRotate;
+          uniform mediump vec2 initPixelSize;
+
+          const int MATERIAL_SIZE = 10;
+          const int POLYGON_COUNT = 20;
+          uniform mediump vec3 verteces[POLYGON_COUNT * 3];
+          uniform lowp float vertexMaterials[MATERIAL_SIZE * POLYGON_COUNT];
+
+          const int SPHERE_COUNT = 3;
+          uniform mediump vec4 spheres[SPHERE_COUNT];
+          uniform lowp float sphereMaterials[MATERIAL_SIZE * SPHERE_COUNT];
+          uniform mediump float iterationCount;
+
+          const mediump float EPS = 1e-3;
+
+          struct Hit {
+            mediump vec3 initDirection;
+            mediump vec3 pos;
+            mediump vec3 norm;
+            lowp vec3 baseColor;
+            mediump float t;
+            lowp float light;
+            lowp float diffuse;
+            lowp float specular;
+            lowp float mirror;
+            lowp float alpha;
+            lowp float initRefractionCoef;
+            lowp float refractionCoef;
+            lowp float transportProbability;
+            bool exists;
+          };
+
+          const mediump float INFINITY = 1e6;
+
+          Hit rayTrace(vec3 start, vec3 direction, float initRefractionCoef) {
+            Hit result;
+            result.initDirection = direction;
+            result.pos = vec3(0);
+            result.norm = vec3(1);
+            result.baseColor = vec3(0);
+            result.t = INFINITY;
+            result.light = 0.0;
+            result.diffuse = 0.0;
+            result.specular = 0.0;
+            result.mirror = 0.0;
+            result.alpha = 0.0;
+            result.initRefractionCoef = initRefractionCoef;
+            result.refractionCoef = 1.0;
+            result.transportProbability = 0.0;
+            result.exists = false;
+
+            for (int i = 0; i < POLYGON_COUNT; ++ i) {
+              mediump vec3 a = verteces[3 * i];
+              mediump vec3 b = verteces[3 * i + 1];
+              mediump vec3 c = verteces[3 * i + 2];
+
+              mediump vec3 E1 = b - a;
+              mediump vec3 E2 = c - a;
+              mediump vec3 norm = normalize(cross(E1, E2));
+
+              if (dot(direction, norm) > EPS) {
+                continue;
+              }
+
+              mediump vec3 T = start - a;
+              mediump vec3 P = cross(direction, E2);
+              mediump vec3 Q = cross(T, E1);
+
+              mediump float coef = 1.0 / dot(P, E1);
+              mediump float t = coef * dot(Q, E2);
+              mediump float u = coef * dot(P, T);
+              mediump float v = coef * dot(Q, direction);
+
+              if (t < 0.0 || u < 0.0 || v < 0.0 || u + v > 1.0) {
+                continue;
+              }
+
+              if (t < result.t) {
+                result.pos = start + direction * t;
+                result.norm = norm;
+                result.baseColor = vec3(vertexMaterials[MATERIAL_SIZE * i + 0],
+                                        vertexMaterials[MATERIAL_SIZE * i + 1],
+                                        vertexMaterials[MATERIAL_SIZE * i + 2]);
+                result.t = t;
+                result.light = vertexMaterials[MATERIAL_SIZE * i + 3];
+                result.diffuse = vertexMaterials[MATERIAL_SIZE * i + 5];
+                result.specular = vertexMaterials[MATERIAL_SIZE * i + 6];
+                result.mirror = vertexMaterials[MATERIAL_SIZE * i + 7];
+                result.alpha = vertexMaterials[MATERIAL_SIZE * i + 8];
+
+                if (dot(result.norm, direction) <= EPS) {
+                  result.refractionCoef = vertexMaterials[MATERIAL_SIZE * i + 9]; // Enter
+                } else {
+                  result.refractionCoef = 1.0; // Exit
+                  result.norm = -result.norm;
+                }
+
+                result.exists = true;
+              }
+            }
+
+            for (int i = 0; i < SPHERE_COUNT; ++ i) {
+              mediump vec3 center = spheres[i].xyz;
+              mediump float radius = spheres[i].w;
+
+              mediump vec3 r = start - center;
+              mediump float b = dot(r, direction);
+
+              mediump float a = dot(direction, direction);
+              mediump float c = dot(r, r) - radius * radius;
+
+              mediump float D = b * b - a * c;
+              if (D <= EPS) {
+                continue;
+              }
+
+              for (int c = -1; c <= 1; c += 2) {
+                mediump float t = - (b + float(c) * sqrt(D)) / a;
+
+                if (t > EPS && t < result.t - EPS) {
+                  result.pos = start + direction * t;
+                  result.norm = normalize(result.pos - center);
+                  result.baseColor = vec3(sphereMaterials[MATERIAL_SIZE * i + 0],
+                                          sphereMaterials[MATERIAL_SIZE * i + 1],
+                                          sphereMaterials[MATERIAL_SIZE * i + 2]);
+                  result.t = t;
+                  result.light = sphereMaterials[MATERIAL_SIZE * i + 3];
+                  result.diffuse = sphereMaterials[MATERIAL_SIZE * i + 5];
+                  result.specular = sphereMaterials[MATERIAL_SIZE * i + 6];
+                  result.mirror = sphereMaterials[MATERIAL_SIZE * i + 7];
+                  result.alpha = sphereMaterials[MATERIAL_SIZE * i + 8];
+
+                  if (dot(result.norm, direction) <= EPS) {
+                    result.refractionCoef = sphereMaterials[MATERIAL_SIZE * i + 9]; // Enter
+                  } else {
+                    result.refractionCoef = 1.0; // Exit
+                    result.norm = -result.norm;
+                  }
+
+                  result.exists = true;
+                }
+              }
+            }
+
+            lowp float sum = result.diffuse + result.specular + result.mirror;
+            if (sum > 0.0) {
+              result.diffuse /= sum;
+              result.specular /= sum;
+              result.mirror /= sum;
+            }
+            result.transportProbability = min(sum, 1.0);
+
+            return result;
+          }
+
+          mediump float rand(vec2 co)
+          {
+              mediump float a = 12.9898;
+              mediump float b = 78.233;
+              mediump float c = 43758.5453;
+              mediump float dt= dot(co.xy, vec2(a,b));
+              mediump float sn= mod(dt, M_PI);
+              return fract(sin(sn) * c);
+          }
+
+          mediump vec3 vrand(vec2 co)
+          {
+              return 2.0 * vec3(rand(co + 0.2), rand(co + 0.4), rand(co + 0.6)) - 1.0;
+          }
+
+          mediump mat3 getTangentSpace(vec3 normal)
+          {
+            mediump vec3 helper = vec3(1, 0, 0);
+            if (abs(normal.x) > 0.99) {
+              helper = vec3(0, 0, 1);
+            }
+
+            mediump vec3 tangent = normalize(cross(normal, helper));
+            mediump vec3 binormal = normalize(cross(normal, tangent));
+            return mat3(tangent, binormal, normal);
+          }
+
+          mediump vec3 sampleHemisphere(vec3 norm, float alpha, vec2 seedNoise) {
+            mediump float phi = rand(seedNoise + 0.15) * M_PI * 2.0;
+            mediump float z = pow(rand(seedNoise + 0.5), 1.0 / (1.0 + alpha));
+            mediump float absXY = sqrt(1.0 - z * z);
+
+            mediump float x = sin(phi) * absXY;
+            mediump float y = cos(phi) * absXY;
+
+            return getTangentSpace(norm) * vec3(x, y, z);
+          }
+
+          struct ProcessedResult {
+            mediump vec3 nextDirection;
+            mediump vec3 nextStart;
+            lowp vec3 color;
+            lowp vec3 filterMultiplier;
+            lowp float pi;
+            mediump float nextRefractionCoef;
+          };
+
+          const mediump vec3 PT_SOURCE_COORD = vec3(0.0, 0.0, 0.65);
+          const mediump float INV_SQRT_3 = sqrt(1.0 / 3.0);
+          const mediump float PT_SOURCE_AREA = sqrt(1.5);
+          mediump mat3 PT_SOURCE_ROTATE;
+          const mediump float PT_SOURCE_SIZE = 0.25 * sqrt(2.0);
+
+          ProcessedResult processHit(Hit hit, vec2 seedNoise, float pi) {
+            ProcessedResult result;
+            ${processLight[state.mode]}
+            result.nextRefractionCoef = hit.initRefractionCoef;
+            result.pi = pi;
+
+            result.nextStart = hit.pos + hit.norm * EPS;
+            seedNoise += fract(10.0 * (hit.pos.xy + hit.pos.yz));
+
+            mediump vec3 reflection = reflect(hit.initDirection, hit.norm);
+
+            // refraction
+            if (abs(hit.refractionCoef - hit.initRefractionCoef) > EPS) {
+              result.filterMultiplier = hit.baseColor;
+
+              mediump vec3 refraction = refract(hit.initDirection, hit.norm, hit.initRefractionCoef / hit.refractionCoef);
+
+              if (length(refraction) <= EPS) {
+                // Reflect
+                result.nextDirection = reflection;
+              } else {
+                mediump float alpha = asin(length(cross(hit.initDirection, hit.norm)));
+                mediump float beta = asin(length(cross(refraction, hit.norm)));
+                mediump float top = sin(alpha - beta);
+                mediump float bottom = sin(alpha + beta);
+
+                if (rand(seedNoise + 0.3) <= top * top / bottom * bottom + EPS) {
+                  result.nextDirection = reflection;
+                } else {
+                  result.nextDirection = refraction;
+                  result.nextStart = hit.pos - hit.norm * EPS;
+                  result.nextRefractionCoef = hit.refractionCoef;
+                }
+              }
+            } else {
+              mediump float roulette = rand(seedNoise + 0.35);
+
+              if (roulette < hit.mirror - EPS) {
+                // mirror
+                result.nextDirection = reflection;
+                result.filterMultiplier = hit.baseColor * hit.transportProbability;
+              } else if (roulette < hit.mirror + hit.specular - EPS) {
+                // specular: Modified Phong model
+                result.nextDirection = sampleHemisphere(reflection, hit.alpha, seedNoise);
+                result.filterMultiplier = vec3(1, 1, 1) * hit.transportProbability * (hit.alpha + 2.0) / (hit.alpha + 1.0) * dot(result.nextDirection, hit.norm);
+              } else {
+                // diffuse
+                ${processDiffuse[state.mode]}
+              }
+            }
+
+            return result;
+          }
+
+          const int PT_DEPTH = 7;
+
+          lowp vec3 getColor(vec3 start, vec3 direction, vec2 seedNoise) {
+            lowp vec3 result = vec3(0);
+            lowp vec3 filter = vec3(1);
+            mediump float refractionCoef = 1.0;
+            lowp float pi = INFINITY;
+
+            for (int i = 0; i < PT_DEPTH; ++ i) {
+              Hit hit = rayTrace(start, direction, refractionCoef);
+              if (!hit.exists) {
+                break;
+              }
+
+              ProcessedResult processed = processHit(hit, seedNoise, pi);
+              pi = processed.pi;
+              result += filter * processed.color${resultModification[state.mode]};
+              filter *= processed.filterMultiplier;
+              start = processed.nextStart;
+              refractionCoef = processed.nextRefractionCoef;
+              direction = processed.nextDirection;
+            }
+
+            return result;
+          }
+
+          const int PT_STEPS = ${ptSteps[state.mode]};
+          const lowp float PT_MULTIPLIER = 1.0 / float(PT_STEPS);
+          const lowp vec3 SCREEN_GAMMA = vec3(1.0 / 2.2);
+
+          void main() {
+            // Init const
+            PT_SOURCE_ROTATE = getTangentSpace(vec3(INV_SQRT_3));
+
+            lowp vec3 result = vec3(0.0, 0.0, 0.0);
+
+            // get start position
+            mediump vec3 start = cameraPos;
+
+            for (int i = 0; i < PT_STEPS; ++ i) {
+              // ray trace
+              mediump vec2 seedNoise = gl_FragCoord.xy * initPixelSize + float(i) * PT_MULTIPLIER + iterationCount;
+              mediump vec2 noise = vrand(seedNoise).xy;
+              mediump vec2 initPos = ((gl_FragCoord.xy + noise * 0.5) * initPixelSize * 2.0 - 1.0) * vec2(1, -1);
+              mediump vec3 direction = initRotate * normalize(vec3(-1, initMult * initPos));
+
+              result += PT_MULTIPLIER * getColor(start, direction, seedNoise);
+            }
+
+            gl_FragColor = vec4(pow(result, SCREEN_GAMMA), 1.0);
+          }
+        `
+
+        const webglCanvas = document.getElementById('webglCanvas')
+        const viewCanvas = document.getElementById('viewCanvas')
+        const gl = webglCanvas.getContext('webgl')
+        const viewContext = viewCanvas.getContext('2d')
+        if (!gl || !viewContext) {
+          return
+        }
+
+        let pixelLength = webglCanvas.width * webglCanvas.height * 4
+        let pixels = null
+        let buf8 = null
+        let imageData = null
+        let iterationCount = 0
+        let state = {
+          continueCalculation: false,
+          mode: 'mixed'
+        }
+
+        const loadShader = (type, source) => {
+          const shader = gl.createShader(type)
+          gl.shaderSource(shader, source)
+          gl.compileShader(shader)
+
+          if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            alert('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader))
+            gl.deleteShader(shader)
+            return null
+          }
+
+          return shader
+        }
+
+        const initShaderProgram = (state) => {
+          const vertexShader = loadShader(gl.VERTEX_SHADER, VERTEX_SHADER)
+          const fragmentShader = loadShader(gl.FRAGMENT_SHADER, genFragmentShader(state))
+
+          // Create the shader program
+          const shaderProgram = gl.createProgram()
+          gl.attachShader(shaderProgram, vertexShader)
+          gl.attachShader(shaderProgram, fragmentShader)
+          gl.linkProgram(shaderProgram)
+
+          // If creating the shader program failed, alert
+          if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+            alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram))
+            return null
+          }
+
+          return shaderProgram
+        }
+
+        const getProgramInfo = (shaderProgram) => ({
+          program: shaderProgram,
+          attribLocations: {
+            vertexPosition: gl.getAttribLocation(shaderProgram, 'vertexPosition'),
+          },
+          uniformLocations: {
+            cameraPos: gl.getUniformLocation(shaderProgram, 'cameraPos'),
+            initMult: gl.getUniformLocation(shaderProgram, 'initMult'),
+            initRotate: gl.getUniformLocation(shaderProgram, 'initRotate'),
+            initPixelSize: gl.getUniformLocation(shaderProgram, 'initPixelSize'),
+            verteces: gl.getUniformLocation(shaderProgram, 'verteces'),
+            vertexMaterials: gl.getUniformLocation(shaderProgram, 'vertexMaterials'),
+            spheres: gl.getUniformLocation(shaderProgram, 'spheres'),
+            sphereMaterials: gl.getUniformLocation(shaderProgram, 'sphereMaterials'),
+            iterationCount: gl.getUniformLocation(shaderProgram, 'iterationCount')
+          }
+        })
+
+        const initBuffers = () => {
+          const positionBuffer = gl.createBuffer()
+
+          gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+
+          const positions = [
+             -1.0, -1.0,
+             -1.0,  3.0,
+              3.0, -1.0,
+          ]
+
+          gl.bufferData(gl.ARRAY_BUFFER,
+                        new Float32Array(positions),
+                        gl.STATIC_DRAW)
+
+          return {
+            position: positionBuffer,
+          }
+        }
+
+        const CAMERA_DISTANCE = 8.0
+
+        const V = [[-1, -1, -1],
+                   [ 1, -1, -1],
+                   [ 1,  1, -1],
+                   [-1,  1, -1],
+                   [-1, -1,  1],
+                   [ 1, -1,  1],
+                   [ 1,  1,  1],
+                   [-1,  1,  1],
+
+                   [0.25,      0, 0.65], // 8
+                   [    0,  0.25, 0.65],
+                   [-0.25,     0, 0.65],
+                   [    0, -0.25, 0.65],
+                   [    0,     0, 0.90], // 12
+                   [    0,     0, 0.40]
+                  ]
+
+        const concat = (elems) => {
+          let result = elems[0];
+          for (i = 1; i < elems.length; ++ i) {
+            result = result.concat(elems[i])
+          }
+          return result
+        }
+
+        const tri = (a, b, c) => concat([V[a], V[b], V[c]])
+        const rect = (a, b, c, d) => concat([tri(a, b, c), tri(a, c, d)])
+
+                //  color             light  xxxxx diffu spec  mirro alpha refra
+        const M = [[1.00, 1.00, 1.00,  0.00, 0.05, 0.60, 0.00, 0.00, 0.00, 1.00], // gray is 0
+                   [1.00, 0.30, 0.30,  0.00, 0.05, 0.90, 0.00, 0.00, 0.00, 1.00], // red is 1
+                   [0.30, 1.00, 0.30,  0.00, 0.05, 0.90, 0.00, 0.00, 0.00, 1.00], // green is 2
+                   [0.30, 0.30, 1.00,  0.00, 0.05, 0.90, 0.00, 0.00, 0.00, 1.00], // blue is 3
+                   [1.00, 1.00, 1.00,  0.00, 0.05, 0.90, 0.00, 0.00, 0.00, 1.00], // white is 4
+                   [1.00, 1.00, 1.00, 20.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00], // light source is 5
+                   [0.30, 0.30, 1.00,  0.00, 0.05, 0.10, 0.80, 0.00, 5.00, 1.00], // specular is 6
+                   [1.00, 1.00, 1.00,  0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 1.00], // mirror is 7
+                   [1.00, 1.00, 1.00,  0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.33]  // glass is 8
+                  ]
+
+
+        const STATIC_UNIFORMS = {
+          vertexMaterials: Float32Array.from(concat([M[0], M[0], // floor is gray
+                                                    M[4], M[4], // ceil  is white
+                                                    M[1], M[1], // visible   is red
+                                                    M[0], M[0], // unvisible is gray
+                                                    M[3], M[3], // left  is blue
+                                                    M[2], M[2], // right is green
+                                                    M[5], M[5], M[5], M[5], M[5], M[5], M[5], M[5] // light is white
+                                                   ])),
+          verteces: Float32Array.from(concat([rect(0, 1, 2, 3), // floor
+                                              rect(5, 4, 7, 6), // ceil
+                                              rect(3, 2, 6, 7), // visible
+                                              rect(1, 0, 4, 5), // unvisible
+                                              rect(0, 3, 7, 4), // left
+                                              rect(2, 1, 5, 6),  // right
+                                              // light
+                                              tri( 8,  9, 12), tri(13,  9,  8),
+                                              tri( 9, 10, 12), tri(13, 10,  9),
+                                              tri(10, 11, 12), tri(13, 11, 10),
+                                              tri(11,  8, 12), tri(13,  8, 11),
+                                             ])),
+          spheres: Float32Array.from([-0.5, -0.5, -0.870, 0.125,
+                                       0.5, -0.5, -0.870, 0.125,
+                                       0.0, -0.5, -0.745,  0.25]),
+          sphereMaterials: Float32Array.from(concat([M[6], M[7], M[8]]))
+        }
+
+        const initUniforms = () => {
+          const width = window.innerWidth
+          const height = window.innerHeight
+          const max_wh = Math.max(width, height)
+
+          const phi = camera.phi * TO_RADIANS
+          const psi = camera.psi * TO_RADIANS
+
+          const cosPhi = Math.cos(phi)
+          const sinPhi = Math.sin(phi)
+          const cosPsi = Math.cos(psi)
+          const sinPsi = Math.sin(psi)
+
+          return Object.assign({}, STATIC_UNIFORMS, {
+            cameraPos: Float32Array.from([ CAMERA_DISTANCE * cosPhi * cosPsi,
+                                           CAMERA_DISTANCE * sinPhi * cosPsi,
+                                           CAMERA_DISTANCE * sinPsi]),
+            initRotate: Float32Array.from([ cosPhi * cosPsi,  sinPhi * cosPsi,  sinPsi,
+                                                    -sinPhi,           cosPhi,       0,
+                                           -cosPhi * sinPsi, -sinPhi * sinPsi,  cosPsi]),
+            initMult: Float32Array.from([Math.tan(width / max_wh * 0.5 * FOV),
+                                         Math.tan(height / max_wh * 0.5 * FOV)]),
+            initPixelSize: Float32Array.from([1.0 / width, 1.0 / height]),
+            iterationCount: Float32Array.from([iterationCount])
+          })
+        }
+
+        let shaderProgram = initShaderProgram(state)
+        let programInfo = getProgramInfo(shaderProgram)
+        const buffers = initBuffers()
+
+        // Utilites
+        const setCanvasSize = () => {
+          const width = window.innerWidth
+          const height = window.innerHeight
+          webglCanvas.width = width
+          webglCanvas.height = height
+          viewCanvas.width = width
+          viewCanvas.height = height
+          pixelLength = width * height * 4
+          pixels = new Uint8Array(pixelLength)
+          buf8 = new Uint8ClampedArray(pixelLength)
+          for (let i = 0; i < pixelLength; ++ i) {
+            buf8[4 * i + 3] = 255 // Set alpha to 1
+          }
+          imageData = viewContext.createImageData(width, height)
+          iterationCount = 0
+          gl.viewport(0, 0, width, height)
+          draw()
+        }
+
+        window.onresize = setCanvasSize
+
+        let camera = {phi: -75.0, psi: 15.0}
+        let prevPointer = null
+
+        viewCanvas.onmousedown = (ev) => {
+          prevPointer = {x: ev.clientX, y: ev.clientY}
+        }
+
+        const minMax = (x, min, max) => {
+          if (x < min - EPS) {
+            return min
+          } else if (x > max + EPS) {
+            return max
+          } else {
+            return x
+          }
+        }
+
+        const MAX_PSI_ABS = 89.5
+        const USER_INPUT_MULTIPLIER = 0.1
+
+        viewCanvas.onmousemove = (ev) => {
+          const pointer = {x: ev.clientX, y: ev.clientY}
+          if (prevPointer != null) {
+            const dx = pointer.x - prevPointer.x
+            const dy = pointer.y - prevPointer.y
+            prevPointer = pointer
+
+            camera = {phi: camera.phi - USER_INPUT_MULTIPLIER * dx,
+                      psi: minMax(camera.psi + USER_INPUT_MULTIPLIER * dy, -MAX_PSI_ABS, MAX_PSI_ABS)}
+            resetResult()
+          }
+        }
+
+        const resetResult = () => {
+          iterationCount = 0
+          for (let i = 0; i < pixelLength; ++ i) {
+            buf8[4 * i] = 0
+            buf8[4 * i + 1] = 0
+            buf8[4 * i + 2] = 0
+          }
+          draw()
+        }
+
+        viewCanvas.onmouseup = viewCanvas.onmouseleave = () => {
+          prevPointer = null
+        }
+
+        const continueCalculationCheckbox = document.getElementsByName("continueCalculation")[0]
+        continueCalculationCheckbox.checked = state.continueCalculation
+        continueCalculationCheckbox.onchange = (ev) => {
+          state = Object.assign({}, state, {continueCalculation: ev.target.checked})
+          draw()
+        }
+
+        viewCanvas.onclick = (ev) => {
+          if (ev.key == ' ') {
+            state = Object.assign({}, state, {continueCalculation: !state.continueCalculation})
+            draw()
+          }
+        }
+
+        document.getElementById('nextStep').onclick = () => {
+          draw()
+        }
+
+        const changeMode = (ev) => {
+          if (ev.target.checked) {
+            state = Object.assign({}, state, {mode: ev.target.value})
+            shaderProgram = initShaderProgram(state)
+            programInfo = getProgramInfo(shaderProgram)
+            resetResult()
+          }
+        }
+        const modeElements = document.getElementsByName("mode")
+        for (let i = 0; i < modeElements.length; ++ i) {
+          modeElements[i].checked = modeElements[i].value === state.mode
+          modeElements[i].onchange = changeMode
+        }
+
+        const linkUniforms = () => {
+          const uniforms = initUniforms()
+          gl.uniform3fv(programInfo.uniformLocations.cameraPos, uniforms.cameraPos)
+          gl.uniform2fv(programInfo.uniformLocations.initMult, uniforms.initMult)
+          gl.uniformMatrix3fv(programInfo.uniformLocations.initRotate, false, uniforms.initRotate)
+          gl.uniform2fv(programInfo.uniformLocations.initPixelSize, uniforms.initPixelSize)
+          gl.uniform3fv(programInfo.uniformLocations.verteces, uniforms.verteces)
+          gl.uniform4fv(programInfo.uniformLocations.spheres, uniforms.spheres)
+          gl.uniform1fv(programInfo.uniformLocations.vertexMaterials, uniforms.vertexMaterials)
+          gl.uniform1fv(programInfo.uniformLocations.sphereMaterials, uniforms.sphereMaterials)
+          gl.uniform1fv(programInfo.uniformLocations.iterationCount, uniforms.iterationCount)
+        }
+
+        const draw = () => {
+          gl.clearColor(0.0, 0.0, 0.0, 1.0)  // Clear to black, fully opaque
+          gl.clearDepth(1.0)                 // Clear everything
+          gl.enable(gl.DEPTH_TEST)           // Enable depth testing
+          gl.depthFunc(gl.LEQUAL)            // Near things obscure far things
+
+          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
+          {
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position)
+            gl.vertexAttribPointer(
+                programInfo.attribLocations.vertexPosition,
+                2,
+                gl.FLOAT,
+                false,
+                0,
+                0)
+            gl.enableVertexAttribArray(
+                programInfo.attribLocations.vertexPosition)
+          }
+
+          gl.useProgram(programInfo.program)
+
+          linkUniforms()
+
+          {
+            const offset = 0
+            const vertexCount = 3
+            gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount)
+          }
+
+          {
+            const width = gl.drawingBufferWidth
+            const height = gl.drawingBufferHeight
+
+            iterationCount += 1
+            const prevMultiplier = (iterationCount - 1) / iterationCount
+            const newMultiplier = 1 / iterationCount
+
+            gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+
+            for (let i = 0; i < pixelLength; ++ i) {
+              buf8[4 * i]     = prevMultiplier * buf8[4 * i] +
+                                newMultiplier * pixels[4 * i]
+              buf8[4 * i + 1] = prevMultiplier * buf8[4 * i + 1] +
+                                newMultiplier * pixels[4 * i + 1]
+              buf8[4 * i + 2] = prevMultiplier * buf8[4 * i + 2] +
+                                newMultiplier * pixels[4 * i + 2]
+            }
+
+            imageData.data.set(buf8)
+            viewContext.putImageData(imageData, 0, 0)
+          }
+        }
+
+        const smoothAnimation = (t) => {
+          window.requestAnimationFrame(smoothAnimation)
+
+          if (state.continueCalculation) {
+            draw()
+          }
+        }
+
+        setCanvasSize()
+        window.requestAnimationFrame(smoothAnimation)
+      })()
+    </script>
+  </body>
+</html>

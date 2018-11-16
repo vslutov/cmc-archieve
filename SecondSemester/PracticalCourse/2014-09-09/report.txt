@@ -1,0 +1,107 @@
+***Answer 1:
+man -f
+man --whatis
+
+***Answer 2:
+Sort entries alphabetically if none of -cftuvSUX nor --sort  is  specified.
+
+***Answer 3:
+Templates 4096 0755
+
+***Answer 4:
+ls -laS
+
+***Answer 5:
+> cat /etc/adjtime
+0.0 0 0.0
+
+***Answer 6:
+-rw-r--r-- 1 root root   91 февр. 20  2014 /etc/networks
+-rw-r--r-- 1 root root 1877 авг.  15 14:25 /etc/passwd
+
+***Answer 7:
+cat /etc/hosts > ~/file3
+cat /etc/passwd >> ~/file3
+cat /etc/fstab >> ~/file3
+
+***Answer 8:
+4
+
+***Answer 9:
+Содержимое файла:
+
+abc\n
+
+Строка def не попала в программу cat, так как не была нажата клавиша `Enter`
+
+***Answer 10:
+~/file5: 5
+~/file6: 4
+
+В одном из них есть перевод строки в конце строки, а в другом - нет.
+
+***Answer 11:
+> pwd
+/home/vs
+Путь до моего домашнего каталога.
+
+***Answer 12:
+> pwd
+/usr/include
+
+***Answer 13:
+Modify: 2014-09-09 09:32:00.4042066693 +0400
+Access: 0755
+
+***Answer 14:
+drwxr-x--- 2 vs vs 4096 сент.  9 09:32 newtask1
+
+***Answer 15:
+6
+
+***Answer 16:
+> echo /etc/c?o*
+/etc/cron.d /etc/cron.daily /etc/cron.hourly /etc/cron.monthly /etc/crontab /etc/cron.weekly
+
+***Answer 17:
+/home/students/s??10????
+
+***Answer 18:
+> ls -l
+total 8
+-rw-r--r-- 1 vs vs  233 сент.  9 09:52 hosts
+-rw-r--r-- 1 vs vs 1877 сент.  9 09:52 passwd
+
+***Answer 19:
+> ls -l
+total 8
+-rw-r--r-- 1 vs vs  233 сент.  9 09:52 hosts2
+-rw-r--r-- 1 vs vs 1877 сент.  9 09:52 passwd
+
+***Answer 20:
+USER=vs
+UID не установлена
+
+***Answer 21:
+> echo $SHELL
+/usr/bin/zsh
+
+***Answer 22:
+> echo $PATH
+/etc:/home/vs/Programs/anaconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/include
+
+***Answer 23:
+> which who
+/usr/bin/who
+
+***Answer 24:
+error: function declaration isn’t a prototype [-Werror=strict-prototypes]
+error: old-style function definition [-Werror=old-style-definition]
+error: ignoring return value of ‘scanf’, declared with attribute warn_unused_result [-Werror=unused-result]
+
+***Answer 25:
+-rwxr-xr-x 1 vs vs 7435 сент.  9 10:13 aplusb
+
+***Answer 26:
+2137625
+

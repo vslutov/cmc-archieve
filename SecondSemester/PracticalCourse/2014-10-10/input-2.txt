@@ -1,0 +1,7 @@
+rwxrwxrwx
+rwxrw
+rwx--xrwx
+rrrrrrrrr
+rw-r--r--
+rew------
+
