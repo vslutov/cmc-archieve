@@ -1,0 +1,52 @@
+Задачи компьютерного зрения на пайтоне можно решать с помощью
+библиотеки numpy и библиотек scipy, matplotlib, scikit-image и scikit-learn,
+они построены на numpy и друг друга дополняют
+
+Лекции по пайтону:
+http://www.tp.umu.se/~nylen/pylect/index.html
+Для начала достаточно посмотреть
+1.2 The Python language
+1.3 Numpy: creating and manipulating numerical data
+
+Установка в Windows:
+1. Скачайте и поставьте python http://www.python.org/download/
+    Обратите внимание — задания будут проверяться на python 3.3
+2. Поставьте бинарные пакеты с библиотеками. Следите за битностью и версией
+пайтона:
+http://www.lfd.uci.edu/~gohlke/pythonlibs/#numpy
+http://www.lfd.uci.edu/~gohlke/pythonlibs/#scipy
+http://www.lfd.uci.edu/~gohlke/pythonlibs/#matplotlib
+http://www.lfd.uci.edu/~gohlke/pythonlibs/#scikit-image
+http://www.lfd.uci.edu/~gohlke/pythonlibs/#scikit-learn
+*.whl нужно устанавливать пакетным менеджером пайтона:
+http://stackoverflow.com/questions/27885397/how-do-i-install-a-python-package-with-a-whl-file
+3. В консоли пайтона должны быть теперь доступны пакеты для импорта, например,
+>>> import numpy
+
+Установка в Linux:
+Посмотрите в репозитории (обычно пакеты там есть), а затем на официальных
+сайтах пакетов.
+
+Ссылки на документацию:
+
+numpy (общие структуры данных для вычислений и операции над ними):
+http://docs.scipy.org/doc/numpy/reference/
+
+scikit-image (обработка изображений):
+http://scikit-image.org/docs/0.10.x/
+
+scikit-learn (алгоритмы машинного обучения):
+http://scikit-learn.org/stable/user_guide.html
+http://scikit-learn.org/stable/modules/classes.html
+
+matplotlib (построение графиков):
+http://matplotlib.org/contents.html
+
+scipy (линейная алгебра, обработка сигналов и др.):
+http://docs.scipy.org/doc/scipy/reference/
+
+
+Стандартная консоль не очень богата возможностями, можно использовать
+вместо неё ipython:
+http://ipython.org/
+

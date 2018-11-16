@@ -1,0 +1,187 @@
+#!/usr/bin/env python
+"""Evaluate solution of the matrix."""
+
+#   sle - system of linear equations solver
+#   Copyright (C) 2014  vslutov
+#
+#   This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import generators
+from __future__ import nested_scopes
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import with_statement
+
+import matrix_functions as mat
+import formula
+
+import sys
+import time
+
+from decimal import Decimal
+
+def get_matrix(filename):
+    """
+    Get matrix and column from the file.
+
+    If filename is None, get from stdin.
+    If filename is --formula, get from formula module.
+    """
+    if filename == '--formula':
+        try:
+            formula.SIZE = int(sys.argv[3])
+        except IndexError:
+            pass
+        augmented_matrix = formula.augmented_matrix()
+    else:
+        if filename is None:
+            matrix_file = sys.stdin
+        else:
+            matrix_file = open(filename)
+
+        augmented_matrix = mat.read_matrix_from_file(matrix_file)
+        matrix_file.close()
+
+    size = len(augmented_matrix)
+    matrix = [row[:size] for row in augmented_matrix]
+    column = [row[size:] for row in augmented_matrix]
+
+    return (matrix, column)
+
+
+def solve(mode):
+    """Solve matrix and print result."""
+    filename = sys.argv[2] if len(sys.argv) > 2 else None
+    omega = Decimal(sys.argv[4]) if len(sys.argv) > 4 else 1
+
+    matrix, column = get_matrix(filename)
+
+    if mode == GAUSS_ELIM or mode == GAUSS_WITHOUT:
+        solution = mat.solve(matrix, column,
+                             leading_coefficient=mode == GAUSS_ELIM)
+    elif mode == OVER_RELAX:
+        print('Omega:', omega)
+        solution = mat.over_relax_solve(matrix, column, omega)
+
+    print('Solution:')
+    print(mat.matrix_to_string(solution))
+    print('Accuracy:',
+          mat.standard_deviation(mat.multiply(matrix, solution), column))
+
+
+def test_over_relax():
+    """Test over-relax elimination on big matrixes."""
+    sys.argv = sys.argv[:2]
+
+    table_columns = ['Size', 'Omega', 'Time (sec)']
+    table_columns[2] = table_columns[2].rjust(14)
+    print('|' + table_columns[0] +
+          '|' + table_columns[1] +
+          '|' + table_columns[2] + '|')
+    for header in table_columns:
+        print('|' + '-' * (len(header) - 1), end=':')
+    print('|')
+
+    for i in xrange(10, 101):
+        formula.SIZE = i
+        matrix, column = get_matrix('--formula')
+
+        steps = 10
+        for int_omega in xrange(1, steps - 1):
+            omega = Decimal(2) / steps * int_omega
+
+            start = time.time()
+            mat.over_relax_solve(matrix, column, omega)
+            elapsed = time.time() - start
+
+            print('|' + str(i).rjust(len(table_columns[0])), end='')
+            print('|' + str(omega).rjust(len(table_columns[1])), end='')
+            print('|' + str(elapsed).rjust(len(table_columns[2])), end='')
+            print('|')
+            sys.stdout.flush()
+
+def test_gauss(leading_coefficient):
+    """Test gauss elimination on big matrixes."""
+    sys.argv = sys.argv[:2]
+
+    table_columns = ['Size', 'Accuracy', 'Time (sec)']
+    table_columns[1] = table_columns[1].rjust(33)
+    table_columns[2] = table_columns[2].rjust(14)
+    print('|' + table_columns[0] +
+          '|' + table_columns[1] +
+          '|' + table_columns[2] + '|')
+    for header in table_columns:
+        print('|' + '-' * (len(header) - 1), end=':')
+    print('|')
+
+    for i in xrange(10, 101):
+        formula.SIZE = i
+        matrix, column = get_matrix('--formula')
+
+        start = time.time()
+        solution = mat.solve(matrix, column,
+                             leading_coefficient=leading_coefficient)
+        elapsed = time.time() - start
+
+        accuracy = mat.standard_deviation(mat.multiply(matrix, solution),
+                                          column)
+
+        print('|' + str(i).rjust(len(table_columns[0])), end='')
+        print('|' + str(accuracy).rjust(len(table_columns[1])), end='')
+        print('|' + str(elapsed).rjust(len(table_columns[2])), end='')
+        print('|')
+        sys.stdout.flush()
+
+
+def test(mode):
+    """Test range of elimination on big matrixes."""
+    if mode == TEST_GAUSS_ELIM:
+        test_gauss(True)
+    elif mode == TEST_GAUSS_WITHOUT:
+        test_gauss(False)
+    elif mode == TEST_OVER_RELAX:
+        test_over_relax()
+
+
+GAUSS_ELIM = 'gauss-elim'
+GAUSS_SUFF = '-minus-lead'
+GAUSS_WITHOUT = GAUSS_ELIM + GAUSS_SUFF
+OVER_RELAX = 'over-relax'
+
+TEST = 'test-'
+TEST_GAUSS_ELIM = TEST + GAUSS_ELIM
+TEST_GAUSS_WITHOUT = TEST + GAUSS_WITHOUT
+TEST_OVER_RELAX = TEST + OVER_RELAX
+
+SOLVE_MODES = [GAUSS_ELIM, GAUSS_WITHOUT, OVER_RELAX]
+TEST_MODES = [TEST_GAUSS_ELIM, TEST_GAUSS_WITHOUT, TEST_OVER_RELAX]
+MODES = SOLVE_MODES + TEST_MODES
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        if sys.argv[1] in SOLVE_MODES:
+            solve(sys.argv[1])
+        elif sys.argv[1] in TEST_MODES:
+            test(sys.argv[1])
+        else:
+            print('Unexpexted {0}.'.format(sys.argv[1]))
+    else:
+        print('usage: sle <command> [file] [additional params]')
+        print('Avaliable commands:')
+        for modename in MODES:
+            print('  ' + modename, sep='')
+        print('If there are not filename, stdin will be used as file input')
+        print('If filename is --formula, formula.py will be used as a matrix')

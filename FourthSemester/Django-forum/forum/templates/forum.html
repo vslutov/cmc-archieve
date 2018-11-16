@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %} Tworum {% endblock %}
+
+{% block header %} Tworum {% endblock %}
+
+{% block content %}
+
+  {% if user.is_authenticated %}
+    <div class="row">
+      <div class="col-md-12">
+        <div class="panel panel-primary">
+          <div class="panel-body">
+            <form action="" method="post" class="form-inline">
+              <div class="form-group">
+                <label for="text">New tread</label>
+                <input class="form-control"  id="text" name="text" rows="5" value=""></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary">Post</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% for thread in threads %}
+    <div class="row">
+      <div class="col-md-1 hidden-xs hidden-sm">
+        <img class="img-rounded" src="{{ thread.head.gravatar }}" alt="avatar">
+      </div>
+      <div class="col-md-11">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h4 class="panel-title">{{ thread.head.user }} <small>{{ thread.head.human_time }}</small></h4>
+          </div>
+          <div class="panel-body">
+          <p>{{ thread.head.text }}</p>
+          </div>
+          <div class="panel-footer">
+            <form action="" method="post" class="form-inline">
+              <input type="hidden" name="thread" value="{{ thread.pk }}">
+              <div class="form-group">
+                <label for="text-reply-{{ thread.pk }}">Answer</label>
+                <input type="text" class="form-control" id="text-reply-{{ thread.pk }}" name="text" value="">
+              </div>
+
+              <button type="submit" class="btn btn-primary">Reply</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% for message in thread.tail %}
+      <div class="row">
+        <div class="col-md-11 col-xs-offset-1">
+          <div class="col-md-1 hidden-xs hidden-sm">
+            <img class="img-rounded" src="{{ message.gravatar }}" alt="avatar">
+          </div>
+          <div class="col-md-11">
+            <div class="panel panel-default">
+              <div class="panel-heading">
+                <h4 class="panel-title">{{ message.user }} <small>{{ message.human_time }}</small></h4>
+              </div>
+              <div class="panel-body">
+                <p>{{ message.text }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% endfor %}
+
+{% endblock %}

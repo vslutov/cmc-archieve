@@ -1,0 +1,5 @@
+total 16
+-rwxr-xr-x 1 vs vs 7435 сент.  9 10:13 aplusb
+-rw-r--r-- 1 vs vs  138 сент.  9 10:13 aplusb.c
+-rw-r--r-- 1 vs vs    0 сент.  9 10:13 file.txt
+-rw-r--r-- 1 vs vs 1117 сент.  9 09:37 report.txt

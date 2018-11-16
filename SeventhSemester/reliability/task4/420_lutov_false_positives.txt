@@ -1,0 +1,58 @@
+GCC:
+
+
+FALSE - Связана с 4 дефектом
+420_lutov_false_positives_sample.c: In function ‘count_func’:
+420_lutov_false_positives_sample.c:80:45: warning: value computed is not used [-Wunused-value]
+     for (*i = 0; *i < (arg4 * arg4) % 1000; *i++)
+                                             ^
+420_lutov_false_positives_sample.c: In function ‘recurs_func’:
+420_lutov_false_positives_sample.c:108:11: warning: variable ‘fin’ set but not used [-Wunused-but-set-variable]
+     FILE *fin;
+           ^
+420_lutov_false_positives_sample.c: In function ‘manage_func’:
+420_lutov_false_positives_sample.c:171:17: warning: format ‘%d’ expects argument of type ‘int’, but argument 2 has type ‘long double’ [-Wformat=]
+         printf( "Some string: %d", res );
+                 ^
+420_lutov_false_positives_sample.c:177:17: warning: format ‘%s’ expects argument of type ‘char *’, but argument 2 has type ‘long double’ [-Wformat=]
+         printf( "Other result: %s", res );
+                 ^
+420_lutov_false_positives_sample.c: In function ‘count_func’:
+420_lutov_false_positives_sample.c:80:13: warning: ‘i’ is used uninitialized in this function [-Wuninitialized]
+     for (*i = 0; *i < (arg4 * arg4) % 1000; *i++)
+             ^
+420_lutov_false_positives_sample.c: In function ‘recurs_func’:
+420_lutov_false_positives_sample.c:136:15: warning: ‘p_arr’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+         p_arr += in_var;
+
+1 / 6 ложное срабатвание.
+Точность: 5/6
+
+CLANG:
+
+420_lutov_false_positives_sample.c:31:5: warning: Potential leak of memory pointed to by 'p_arr2'
+    memcpy(p_arr2 - shift, arr1, 7);
+    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+420_lutov_false_positives_sample.c:59:1: warning: Potential leak of memory pointed to by 'PArr1'
+}
+^
+420_lutov_false_positives_sample.c:59:1: warning: Potential leak of memory pointed to by 'PArr2'
+420_lutov_false_positives_sample.c:80:13: warning: Dereference of undefined pointer value
+    for (*i = 0; *i < (arg4 * arg4) % 1000; *i++)
+         ~~~^~~
+420_lutov_false_positives_sample.c:133:9: warning: Value stored to 'fin' is never read
+        fin = fopen("input.file", "r");
+        ^     ~~~~~~~~~~~~~~~~~~~~~~~~
+420_lutov_false_positives_sample.c:164:15: warning: Function call argument is an uninitialized value
+        res = (*math_func)(i/IterNum, abs(i), res, IterNum - i);
+              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Нет ложных срабатываний.
+Точность: 6/6.
+
+AEGIS:
+
+Использование неинициализированной переменной (long double res) в выражении double D.3559 = (double)long double res (INI-01)
+
+Нет ложных срабатываний.
+Точность 1/1.

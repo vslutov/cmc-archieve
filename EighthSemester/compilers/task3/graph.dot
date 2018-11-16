@@ -1,0 +1,16 @@
+digraph G {
+node [shape=record]
+Exit -> B4
+Exit -> B5
+Exit -> B9
+Exit -> B11
+B4 -> B3
+B4 -> B10
+B3 -> B1
+B3 -> B2
+B1 -> B12
+B1 -> Entry
+B9 -> B7
+B7 -> B6
+B7 -> B8
+}

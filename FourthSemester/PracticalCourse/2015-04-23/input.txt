@@ -1,0 +1,9 @@
+A a A
+A b B
+B a C
+B b B
+C a C
+END
+B C END
+A
+aaabbbbba

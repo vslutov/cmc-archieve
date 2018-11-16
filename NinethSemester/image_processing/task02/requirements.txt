@@ -1,0 +1,4 @@
+numpy==1.13.3
+scikit-image==0.13.1
+cython==0.27.3
+setuptools==36.7.2

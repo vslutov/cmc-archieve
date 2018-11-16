@@ -1,0 +1,16 @@
+    prime[1] <- 0
+    prime[0] <- 0
+    i <- 2
+B1: ifFalse i <= n goto E1
+    a <- prime[i]
+    ifFalse a goto I1
+    b <- *, i, i
+    ifFalse b <= n goto I1
+    j <- *, i, i
+B2: ifFalse j <= n goto I1
+    prime[j] <- 0
+    j <- +, j, i
+    goto B2
+I1: i <- +, i, 1
+    goto B1
+E1:

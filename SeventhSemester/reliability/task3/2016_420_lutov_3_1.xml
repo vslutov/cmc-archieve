@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>
+<nta>
+	<declaration>// Place global declarations here.
+broadcast chan tick;
+int time = 0;
+int cpu_time[3] = {0, 0, 0};
+int tasks[3] = {0, 0, 0};
+int ready[10] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+int delay = 0;</declaration>
+	<template>
+		<name x="5" y="5">CPU</name>
+		<parameter>int cpu_id</parameter>
+		<declaration>void
+ProcessorStep()
+{
+  if (cpu_time[cpu_id] &gt; 0) {
+    -- cpu_time[cpu_id];
+    if (cpu_time[cpu_id] == 0) {
+       ready[tasks[cpu_id]] = 1;
+    }
+  } else {
+    ++ delay;
+  }
+}</declaration>
+		<location id="id0" x="16" y="-40">
+		</location>
+		<init ref="id0"/>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id0"/>
+			<label kind="synchronisation" x="168" y="-48">tick?</label>
+			<label kind="assignment" x="168" y="-24">ProcessorStep()</label>
+			<nail x="152" y="-128"/>
+			<nail x="152" y="24"/>
+		</transition>
+	</template>
+	<template>
+		<name>Timer</name>
+		<location id="id1" x="0" y="0">
+			<label kind="invariant" x="-112" y="-8">delay &lt;= 15</label>
+		</location>
+		<init ref="id1"/>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id1"/>
+			<label kind="synchronisation" x="96" y="-16">tick!</label>
+			<label kind="assignment" x="96" y="8">++ time</label>
+			<nail x="88" y="-72"/>
+			<nail x="88" y="48"/>
+		</transition>
+	</template>
+	<template>
+		<name>Task</name>
+		<parameter>int task_id, int dep1, int dep2, int cpu_time_0, int cpu_time_1, int cpu_time_2</parameter>
+		<declaration>int cpu_id = -1;</declaration>
+		<location id="id2" x="96" y="16">
+		</location>
+		<location id="id3" x="-240" y="16">
+		</location>
+		<init ref="id3"/>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id2"/>
+			<nail x="192" y="-32"/>
+			<nail x="192" y="72"/>
+		</transition>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-224" y="104">ready[dep1] &amp;&amp; ready[dep2] &amp;&amp; cpu_time[2] == 0</label>
+			<label kind="assignment" x="-224" y="136">cpu_time[2] = cpu_time_2,
+tasks[2] = task_id,
+cpu_id = 2</label>
+			<nail x="-240" y="128"/>
+			<nail x="96" y="128"/>
+		</transition>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-224" y="-8">ready[dep1] &amp;&amp; ready[dep2] &amp;&amp; cpu_time[1] == 0</label>
+			<label kind="assignment" x="-224" y="24">cpu_time[1] = cpu_time_1,
+tasks[1] = task_id,
+cpu_id = 1</label>
+		</transition>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-224" y="-120">ready[dep1] &amp;&amp; ready[dep2] &amp;&amp; cpu_time[0] == 0</label>
+			<label kind="assignment" x="-224" y="-88">cpu_time[0] = cpu_time_0,
+tasks[0] = task_id,
+cpu_id = 0</label>
+			<nail x="-240" y="-96"/>
+			<nail x="96" y="-96"/>
+		</transition>
+	</template>
+	<system>// Place template instantiations here.
+cpu_0 = CPU(0);
+cpu_1 = CPU(1);
+cpu_2 = CPU(2);
+timer = Timer();
+
+A = Task(1, 0, 0, 1, 4, 4);
+B = Task(2, 0, 0, 7, 7, 2);
+C = Task(3, 2, 0, 8, 8, 8);
+D = Task(4, 1, 2, 4, 5, 6);
+E = Task(5, 2, 0, 6, 1, 1);
+F = Task(6, 3, 0, 11, 8, 9);
+G = Task(7, 3, 4, 14, 15, 12);
+H = Task(8, 5, 7, 5, 2, 1);
+I = Task(9, 5, 0, 5, 6, 7);
+
+clock t;
+
+// List one or more processes to be composed into a system.
+system A, B, C, D, E, F, G, H, I, cpu_0, cpu_1, cpu_2, timer;</system>
+	<queries>
+		<query>
+			<formula>A[] not deadlock
+			</formula>
+			<comment>
+			</comment>
+		</query>
+		<query>
+			<formula>E&lt;&gt; ready[1] &amp;&amp; ready[2] &amp;&amp; ready[3] &amp;&amp; ready[4] &amp;&amp; ready[5] &amp;&amp; ready[6] &amp;&amp; ready[7] &amp;&amp; ready[8] &amp;&amp; ready[9] &amp;&amp; delay &lt; 15
+			</formula>
+			<comment>
+			</comment>
+		</query>
+		<query>
+			<formula>E&lt;&gt; ready[1] &amp;&amp; ready[2] &amp;&amp; ready[3] &amp;&amp; ready[4] &amp;&amp; ready[5] &amp;&amp; ready[6] &amp;&amp; ready[7] &amp;&amp; ready[8] &amp;&amp; ready[9] &amp;&amp; delay &lt; 14
+			</formula>
+			<comment>
+			</comment>
+		</query>
+	</queries>
+</nta>

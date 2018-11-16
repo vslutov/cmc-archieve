@@ -1,0 +1,10 @@
+bin
+include
+lib
+lib64
+local
+pip-selfcheck.json
+*.pyc
+*.swp
+
+forum/db.sqlite3

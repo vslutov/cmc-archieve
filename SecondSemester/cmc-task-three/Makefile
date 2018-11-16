@@ -1,0 +1,14 @@
+PROJECT_NAME = cmc-task-three
+SOURCE_DIR = src
+BUILD_DIR = build
+
+SORT_KIND = ASCENDING # ASCENDING OR DESCENDING
+TEST_OUTPUT = CONSOLE # CONSOLE OR IMG
+
+include $(SOURCE_DIR)/Makefile
+
+all : $(TARGET)
+
+clean : $(BUILD_DIR)
+	rm $(BUILD_DIR)/*.o
+
