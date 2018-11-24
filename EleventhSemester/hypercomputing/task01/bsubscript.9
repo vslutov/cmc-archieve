@@ -1,0 +1,7 @@
+module add ScaLAPACK/netlib-2.0.2_repo OpenMPI/1.10.7_repo
+#BSUB -n 9
+#BSUB -W 00:15
+#BSUB -o output/matrix_9.%J.out
+#BSUB -e output/matrix_9.%J.err
+#BSUB -env all
+/usr/bin/bash start.9.sh
