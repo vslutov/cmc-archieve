@@ -16,7 +16,7 @@ const double Ly = PI * 50;
 const double Lz = PI * 50;
 const double Lt = PI * 0.32;
 
-const ssize_t nelems = 256;
+const ssize_t nelems = NELEMS;
 const ssize_t Nx = nelems;
 const ssize_t Ny = nelems;
 const ssize_t Nz = nelems;

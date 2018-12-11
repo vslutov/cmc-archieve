@@ -1,0 +1,27 @@
+EXENAME=parmpi
+EXECUTABLE=$(EXENAME).128 $(EXENAME).256 $(EXENAME).512 $(EXENAME).1024 $(EXENAME).1536
+
+CXX = mpicxx
+CXXFLAGS = -std=c++11 -O3 -Wall -Werror -Wformat-security -Wignored-qualifiers -Winit-self -Wswitch-default -Wfloat-equal -Wshadow -Wpointer-arith -Wtype-limits -Wempty-body -Wlogical-op -Wmissing-field-initializers -Wctor-dtor-privacy  -Wnon-virtual-dtor -Wstrict-null-sentinel -Woverloaded-virtual -Wsign-promo
+
+%.128: %.cpp
+	$(CXX) $(CXXFLAGS) -D NELEMS=128 -o $@ $^
+
+%.256: %.cpp
+	$(CXX) $(CXXFLAGS) -D NELEMS=256 -o $@ $^
+
+%.512: %.cpp
+	$(CXX) $(CXXFLAGS) -D NELEMS=512 -o $@ $^
+
+%.1024: %.cpp
+	$(CXX) $(CXXFLAGS) -D NELEMS=1024 -o $@ $^
+
+%.1536: %.cpp
+	$(CXX) $(CXXFLAGS) -D NELEMS=1536 -o $@ $^
+
+all : $(EXECUTABLE)
+
+clean:
+	rm -f $(EXECUTABLE)
+
+.PHONY : all clean test

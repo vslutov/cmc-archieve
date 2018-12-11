@@ -18,7 +18,7 @@ const double Ly = PI * 50;
 const double Lz = PI * 50;
 const double Lt = PI * 0.32;
 
-const ssize_t nelems = 512;
+const ssize_t nelems = NELEMS;
 const ssize_t Nx = nelems;
 const ssize_t Ny = nelems;
 const ssize_t Nz = nelems;
@@ -37,7 +37,7 @@ u(double x, double y, double z, double t)
   return std::sin(2 * PI / Lx * x) * std::sin(PI / Lz * z) * std::cos(A * t + 2 * PI / Ly * y);
 }
 
-static double buffer[Nx * Ny * Nz];
+static double *buffer;
 
 struct Layer {
 public:
@@ -513,6 +513,9 @@ main(int argc, char **argv)
   const ssize_t DCy = My < Py - 1 ? Dy : Ny - My * Dy;
   const ssize_t DCz = Mz < Pz - 1 ? Dz : Nz - Mz * Dz;
 
+  // Init buffer
+  buffer = new double[npow(std::max(DCx, std::max(DCy, DCz)), 2)];
+
   // Init layers
   auto c = init_current(Mx * Dx, My * Dy, Mz * Dz, DCx, DCy, DCz);
   sync(Mx, My, Mz, Px, Py, Pz, *c);
@@ -534,5 +537,7 @@ main(int argc, char **argv)
     help_evaluate(Mx * Dx, My * Dy, Mz * Dz, *c);
   }
 
+  // release
+  delete[] buffer;
   MPI_Finalize();
 }
