@@ -37,7 +37,11 @@ u(double x, double y, double z, double t)
 
 struct Layer {
 public:
-  Layer() = default;
+  Layer() :
+    data()
+  {
+  }
+
   Layer(const Layer&) = default;
   Layer(Layer&&) = default;
 
@@ -138,20 +142,14 @@ evaluate(const Layer &layer, double t=Lt)
   return l2 / (static_cast<double>(Nx) * Ny * Nz);
 }
 
-LayerPtr
-calc_last_layer()
+void
+calc_last_layer(LayerPtr &p, LayerPtr &c, LayerPtr &n)
 {
-  auto p = init_prev();
-  auto c = init_current();
-  auto n = init_layer();
-
   for (ssize_t i = 0; i < Nt; ++ i) {
     calc_next_layer(*p, *c, *n);
     p.swap(c);
     c.swap(n);
   }
-
-  return c;
 }
 
 int
@@ -159,11 +157,15 @@ main(void)
 {
   std::ios_base::sync_with_stdio(false);
 
+  auto p = init_prev();
+  auto c = init_current();
+  auto n = init_layer();
+
   volatile auto clock_count = std::clock();
-  auto last_layer = calc_last_layer();
+  calc_last_layer(p, c, n);
   clock_count = std::clock() - clock_count;
 
   double seconds = static_cast<double>(clock_count) / CLOCKS_PER_SEC;
 
-  std::cout << nelems << "," << seconds << "," << 0 << "," << evaluate(*last_layer) << std::endl;
+  std::cout << nelems << "," << seconds << "," << 0 << "," << evaluate(*c) << std::endl;
 }
