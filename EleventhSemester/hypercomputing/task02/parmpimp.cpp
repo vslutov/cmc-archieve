@@ -4,6 +4,7 @@
 #include <memory>
 #include <ctime>
 #include <mpi.h>
+#include <omp.h>
 
 const double PI = 3.141592653589793;
 
@@ -140,6 +141,7 @@ static inline void
 send_y_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, const Layer &layer) 
 {
   // move last y layer to buffer
+  #pragma omp parallel for
   for (ssize_t i = 0; i < layer.DCx; ++ i) {
     for (ssize_t k = 0; k < layer.DCz; ++ k) {
       buffer[i * layer.DCz + k] = layer(i, layer.DCy - 1, k);
@@ -161,6 +163,7 @@ static inline void
 send_y_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, const Layer &layer)
 {
   // move first y layer to buffer
+  #pragma omp parallel for
   for (ssize_t i = 0; i < layer.DCx; ++ i) {
     for (ssize_t k = 0; k < layer.DCz; ++ k) {
       buffer[i * layer.DCz + k] = layer(i, 0, k);
@@ -197,6 +200,7 @@ static inline void
 send_x_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, const Layer &layer) 
 {
   // move last y layer to buffer
+  #pragma omp parallel for
   for (ssize_t j = 0; j < layer.DCy; ++ j) {
     for (ssize_t k = 0; k < layer.DCz; ++ k) {
       buffer[j * layer.DCz + k] = layer(layer.DCx - 1, j, k);
@@ -218,6 +222,7 @@ static inline void
 send_x_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, const Layer &layer)
 {
   // move first y layer to buffer
+  #pragma omp parallel for
   for (ssize_t j = 0; j < layer.DCy; ++ j) {
     for (ssize_t k = 0; k < layer.DCz; ++ k) {
       buffer[j * layer.DCz + k] = layer(0, j, k);
@@ -254,6 +259,7 @@ static inline void
 send_z_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, const Layer &layer) 
 {
   // move last y layer to buffer
+  #pragma omp parallel for
   for (ssize_t i = 0; i < layer.DCx; ++ i) {
     for (ssize_t j = 0; j < layer.DCy; ++ j) {
       buffer[i * layer.DCy + j] = layer(i, j, layer.DCz - 1);
@@ -275,6 +281,7 @@ static inline void
 send_z_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, const Layer &layer)
 {
   // move first y layer to buffer
+  #pragma omp parallel for
   for (ssize_t i = 0; i < layer.DCx; ++ i) {
     for (ssize_t j = 0; j < layer.DCy; ++ j) {
       buffer[i * layer.DCy + j] = layer(i, j, 0);
@@ -309,6 +316,8 @@ contact_z_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, s
 static inline void
 sync(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
 {
+  // int tid=0;
+
   // Transport along y axis
   if (Py % 2) {
     if (My % 2) {
@@ -331,11 +340,25 @@ sync(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Lay
     }
   } else {
     if (My % 2) {
-      contact_y_backward(Mx, My, Mz, Px, Py, Pz, layer);
-      contact_y_forward(Mx, My, Mz, Px, Py, Pz, layer);
+      // #pragma omp parallel private(tid) 
+      // {
+      //   tid = omp_get_thread_num();
+      //   if (tid) {
+            contact_y_backward(Mx, My, Mz, Px, Py, Pz, layer);
+      //   } else {
+            contact_y_forward(Mx, My, Mz, Px, Py, Pz, layer);
+      //   }
+      // }
     } else {
-      contact_y_forward(Mx, My, Mz, Px, Py, Pz, layer);
-      contact_y_backward(Mx, My, Mz, Px, Py, Pz, layer);
+      // #pragma omp parallel private(tid) 
+      // {
+      //   tid = omp_get_thread_num();
+      //   if (tid) {
+             contact_y_forward(Mx, My, Mz, Px, Py, Pz, layer);
+      //   } else {
+             contact_y_backward(Mx, My, Mz, Px, Py, Pz, layer);
+      //   }
+      // }
     }
   }
 
@@ -373,6 +396,7 @@ sync(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Lay
 static inline void
 calc_next_layer(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, const Layer &p, const Layer &c, Layer &n)
 {
+  #pragma omp parallel for
   for (ssize_t i = 0; i < n.DCx; ++ i) {
     for (ssize_t j = 0; j < n.DCy; ++ j) {
       for (ssize_t k = 0; k < n.DCz; ++ k) {
