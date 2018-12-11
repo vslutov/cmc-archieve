@@ -29,7 +29,7 @@ const double Ht = Lt / Nt;
 
 const double A = std::sqrt(sqr(2 * PI / Lx) + sqr(2 * PI / Ly) + sqr(PI / Lz));
 
-double
+static inline double
 u(double x, double y, double z, double t)
 {
   return std::sin(2 * PI / Lx * x) * std::sin(PI / Lz * z) * std::cos(A * t + 2 * PI / Ly * y);
@@ -74,14 +74,14 @@ private:
 
 using LayerPtr = std::unique_ptr<Layer>;
 
-LayerPtr
+static inline LayerPtr
 init_layer()
 {
   auto layer = LayerPtr(new Layer());
   return layer;
 }
 
-LayerPtr
+static inline LayerPtr
 init_prev()
 {
   auto p = init_layer();
@@ -95,13 +95,13 @@ init_prev()
   return p;
 }
 
-LayerPtr
+static inline LayerPtr
 init_current()
 {
   auto c = init_layer();
-  for (ssize_t i = 1; i < Nx - 1; ++ i) {
+  for (ssize_t i = 0; i < Nx; ++ i) {
     for (ssize_t j = 0; j < Ny; ++ j) {
-      for (ssize_t k = 1; k < Nz - 1; ++ k) {
+      for (ssize_t k = 0; k < Nz; ++ k) {
         c->set(i, j, k, u((i + 1) * Hx, j * Hy, (k + 1) * Hz, 0));
       }
     }
@@ -109,7 +109,7 @@ init_current()
   return c;
 }
 
-void
+static inline void
 calc_next_layer(const Layer &p, const Layer &c, Layer &n)
 {
   for (ssize_t i = 0; i < Nx; ++ i) {
@@ -127,7 +127,7 @@ calc_next_layer(const Layer &p, const Layer &c, Layer &n)
   }
 }
 
-double
+static inline double
 evaluate(const Layer &layer, double t=Lt)
 {
   double l2 = 0;
@@ -139,10 +139,10 @@ evaluate(const Layer &layer, double t=Lt)
     }
   }
 
-  return l2 / (static_cast<double>(Nx) * Ny * Nz);
+  return l2;
 }
 
-void
+static inline void
 calc_last_layer(LayerPtr &p, LayerPtr &c, LayerPtr &n)
 {
   for (ssize_t i = 0; i < Nt; ++ i) {

@@ -1,19 +1,23 @@
 PROJECT=task01
-EXEFILE=sequence
+SEQUENCE=sequence
+PARMPI=parmpi
+EXECUTABLE=$(SEQUENCE) $(PARMPI)
 
-BUILD=$(EXEFILE) $(EXEFILE).o
+BUILD=$(EXECUTABLE) $(SEQUENCE).o $(PARMPI).o
 
-CXXFLAGS = -std=c++11 -O3
+CXX = mpicxx
+CXXFLAGS = -g -std=c++11 -O3 -Wall -Werror -Wformat-security -Wignored-qualifiers -Winit-self -Wswitch-default -Wfloat-equal -Wshadow -Wpointer-arith -Wtype-limits -Wempty-body -Wlogical-op -Wmissing-field-initializers -Wctor-dtor-privacy  -Wnon-virtual-dtor -Wstrict-null-sentinel -Woverloaded-virtual -Wsign-promo
 
-$(EXEFILE): $(EXEFILE).o
+%: %.o
 	$(CXX) $(LDFLAGS) -o $@ $^
 
-all : $(EXEFILE)
+all : $(SEQUENCE) $(PARMPI)
 
 clean:
 	rm -f $(BUILD)
 
-test: $(EXEFILE)
-	./$(EXEFILE)
+test: all
+	mpirun -n 8 $(PARMPI)
+	# ./$(SEQUENCE)
 
 .PHONY : all clean test
