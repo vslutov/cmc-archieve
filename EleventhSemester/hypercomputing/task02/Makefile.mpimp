@@ -1,8 +1,8 @@
 EXENAME=parmpimp
 EXECUTABLE=$(EXENAME).128 $(EXENAME).256 $(EXENAME).512 $(EXENAME).1024 $(EXENAME).1536
 
-CXX = mpicxx
-CXXFLAGS = -std=c++11 -O3 -Wall -Werror -Wformat-security -Wignored-qualifiers -Winit-self -Wswitch-default -Wfloat-equal -Wshadow -Wpointer-arith -Wtype-limits -Wempty-body -Wlogical-op -Wmissing-field-initializers -Wctor-dtor-privacy  -Wnon-virtual-dtor -Wstrict-null-sentinel -Woverloaded-virtual -Wsign-promo -fopenmp -lpthread
+CXX = mpixlcxx_r
+CXXFLAGS = -O2 -qsmp=omp
 
 %.128: %.cpp
 	$(CXX) $(CXXFLAGS) -D NELEMS=128 -o $@ $^

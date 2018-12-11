@@ -8,7 +8,7 @@
 
 const double PI = 3.141592653589793;
 
-constexpr double
+double
 sqr(double x) {
   return x * x;
 }
@@ -31,7 +31,7 @@ const double Ht = Lt / Nt;
 
 const double A = std::sqrt(sqr(2 * PI / Lx) + sqr(2 * PI / Ly) + sqr(PI / Lz));
 
-double
+static inline double
 u(double x, double y, double z, double t)
 {
   return std::sin(2 * PI / Lx * x) * std::sin(PI / Lz * z) * std::cos(A * t + 2 * PI / Ly * y);
@@ -54,12 +54,6 @@ public:
     nz(_DCx * _DCy)
   {
   }
-
-  Layer(const Layer&) = default;
-  Layer(Layer&&) = default;
-
-  Layer &
-  operator=(const Layer&) = default;
 
   void
   set(ssize_t i, ssize_t j, ssize_t k, double v) {
@@ -99,19 +93,18 @@ public:
   std::vector<double> data, px, nx, py, ny, pz, nz;
 };
 
-using LayerPtr = std::unique_ptr<Layer>;
+#define LayerPtr Layer *
 
 static inline LayerPtr
 init_layer(ssize_t DCx, ssize_t DCy, ssize_t DCz)
 {
-  auto layer = LayerPtr(new Layer(DCx, DCy, DCz));
-  return layer;
+  return new Layer(DCx, DCy, DCz);
 }
 
 static inline LayerPtr
 init_prev(ssize_t Sx, ssize_t Sy, ssize_t Sz, ssize_t DCx, ssize_t DCy, ssize_t DCz)
 {
-  auto p = init_layer(DCx, DCy, DCz);
+  LayerPtr p = init_layer(DCx, DCy, DCz);
   for (ssize_t i = 0; i < DCx; ++ i) {
     for (ssize_t j = 0; j < DCy; ++ j) {
       for (ssize_t k = 0; k < DCz; ++ k) {
@@ -125,7 +118,7 @@ init_prev(ssize_t Sx, ssize_t Sy, ssize_t Sz, ssize_t DCx, ssize_t DCy, ssize_t 
 static inline LayerPtr
 init_current(ssize_t Sx, ssize_t Sy, ssize_t Sz, ssize_t DCx, ssize_t DCy, ssize_t DCz)
 {
-  auto c = init_layer(DCx, DCy, DCz);
+  LayerPtr c = init_layer(DCx, DCy, DCz);
   for (ssize_t i = 0; i < DCx; ++ i) {
     for (ssize_t j = 0; j < DCy; ++ j) {
       for (ssize_t k = 0; k < DCz; ++ k) {
@@ -316,8 +309,6 @@ contact_z_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, s
 static inline void
 sync(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
 {
-  // int tid=0;
-
   // Transport along y axis
   if (Py % 2) {
     if (My % 2) {
@@ -340,25 +331,11 @@ sync(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Lay
     }
   } else {
     if (My % 2) {
-      // #pragma omp parallel private(tid) 
-      // {
-      //   tid = omp_get_thread_num();
-      //   if (tid) {
-            contact_y_backward(Mx, My, Mz, Px, Py, Pz, layer);
-      //   } else {
-            contact_y_forward(Mx, My, Mz, Px, Py, Pz, layer);
-      //   }
-      // }
+      contact_y_backward(Mx, My, Mz, Px, Py, Pz, layer);
+      contact_y_forward(Mx, My, Mz, Px, Py, Pz, layer);
     } else {
-      // #pragma omp parallel private(tid) 
-      // {
-      //   tid = omp_get_thread_num();
-      //   if (tid) {
-             contact_y_forward(Mx, My, Mz, Px, Py, Pz, layer);
-      //   } else {
-             contact_y_backward(Mx, My, Mz, Px, Py, Pz, layer);
-      //   }
-      // }
+      contact_y_forward(Mx, My, Mz, Px, Py, Pz, layer);
+      contact_y_backward(Mx, My, Mz, Px, Py, Pz, layer);
     }
   }
 
@@ -400,11 +377,11 @@ calc_next_layer(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssiz
   for (ssize_t i = 0; i < n.DCx; ++ i) {
     for (ssize_t j = 0; j < n.DCy; ++ j) {
       for (ssize_t k = 0; k < n.DCz; ++ k) {
-        auto c_val = 2 * c(i, j, k);
-        auto d2u_dx2 = (c(i - 1, j, k) + c(i + 1, j, k) - c_val) / sqr(Hx);
-        auto d2u_dy2 = (c(i, j - 1, k) + c(i, j + 1, k) - c_val) / sqr(Hy);
-        auto d2u_dz2 = (c(i, j, k - 1) + c(i, j, k + 1) - c_val) / sqr(Hz);
-        auto u_H = d2u_dx2 + d2u_dy2 + d2u_dz2;
+        double c_val = 2 * c(i, j, k);
+        double d2u_dx2 = (c(i - 1, j, k) + c(i + 1, j, k) - c_val) / sqr(Hx);
+        double d2u_dy2 = (c(i, j - 1, k) + c(i, j + 1, k) - c_val) / sqr(Hy);
+        double d2u_dz2 = (c(i, j, k - 1) + c(i, j, k + 1) - c_val) / sqr(Hz);
+        double u_H = d2u_dx2 + d2u_dy2 + d2u_dz2;
 
         n.set(i, j, k, c_val - p(i, j, k) + u_H * sqr(Ht));
       }
@@ -448,10 +425,13 @@ help_evaluate(ssize_t Sx, ssize_t Sy, ssize_t Sz, const Layer &layer, double t=L
 static inline void
 calc_last_layer(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, LayerPtr &p, LayerPtr &c, LayerPtr &n)
 {
+  LayerPtr t;
   for (ssize_t i = 0; i < Nt; ++ i) {
     calc_next_layer(Mx, My, Mz, Px, Py, Pz, *p, *c, *n);
-    p.swap(c);
-    c.swap(n);
+    t = p;
+    p = c;
+    c = n;
+    n = t;
   }
 }
 
@@ -517,14 +497,14 @@ main(int argc, char **argv)
   buffer = new double[npow(std::max(DCx, std::max(DCy, DCz)), 2)];
 
   // Init layers
-  auto c = init_current(Mx * Dx, My * Dy, Mz * Dz, DCx, DCy, DCz);
+  LayerPtr c = init_current(Mx * Dx, My * Dy, Mz * Dz, DCx, DCy, DCz);
   sync(Mx, My, Mz, Px, Py, Pz, *c);
-  auto p = init_prev(Mx * Dx, My * Dy, Mz * Dz, DCx, DCy, DCz);
+  LayerPtr p = init_prev(Mx * Dx, My * Dy, Mz * Dz, DCx, DCy, DCz);
   sync(Mx, My, Mz, Px, Py, Pz, *p);
-  auto n = init_layer(DCx, DCy, DCz);
+  LayerPtr n = init_layer(DCx, DCy, DCz);
 
   MPI_Barrier(MPI_COMM_WORLD);
-  volatile auto clock_count = std::clock();
+  volatile clock_t clock_count = std::clock();
   calc_last_layer(Mx, My, Mz, Px, Py, Pz, p, c, n);
   MPI_Barrier(MPI_COMM_WORLD);
   clock_count = std::clock() - clock_count;
@@ -532,12 +512,15 @@ main(int argc, char **argv)
   double seconds = static_cast<double>(clock_count) / CLOCKS_PER_SEC;
 
   if (world_rank == 0) {
-    std::cout << nelems << "," << seconds << "," << 0 << "," << evaluate(Px * Py * Pz, *c) << std::endl;
+    std::cout << world_size << "," << nelems << "," << seconds << "," << 0 << "," << evaluate(Px * Py * Pz, *c) << std::endl;
   } else {
     help_evaluate(Mx * Dx, My * Dy, Mz * Dz, *c);
   }
 
   // release
+  delete p;
+  delete c;
+  delete n;
   delete[] buffer;
   MPI_Finalize();
 }

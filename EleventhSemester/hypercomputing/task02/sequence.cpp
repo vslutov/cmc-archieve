@@ -1,12 +1,12 @@
 #include <iostream>
-#include <array>
+#include <vector>
 #include <cmath>
 #include <memory>
 #include <ctime>
 
 const double PI = 3.141592653589793;
 
-constexpr double
+double
 sqr(double x) {
   return x * x;
 }
@@ -38,15 +38,9 @@ u(double x, double y, double z, double t)
 struct Layer {
 public:
   Layer() :
-    data()
+    data(Nx * Ny * Nz)
   {
   }
-
-  Layer(const Layer&) = default;
-  Layer(Layer&&) = default;
-
-  Layer &
-  operator=(const Layer&) = default;
 
   void
   set(ssize_t i, ssize_t j, ssize_t k, double v) {
@@ -69,22 +63,21 @@ public:
   }
 
 private:
-  std::array<double, Nx * Ny * Nz> data;
+  std::vector<double> data;
 };
 
-using LayerPtr = std::unique_ptr<Layer>;
+#define LayerPtr Layer *
 
 static inline LayerPtr
 init_layer()
 {
-  auto layer = LayerPtr(new Layer());
-  return layer;
+  return new Layer();
 }
 
 static inline LayerPtr
 init_prev()
 {
-  auto p = init_layer();
+  LayerPtr p = init_layer();
   for (ssize_t i = 0; i < Nx; ++ i) {
     for (ssize_t j = 0; j < Ny; ++ j) {
       for (ssize_t k = 0; k < Nz; ++ k) {
@@ -98,7 +91,7 @@ init_prev()
 static inline LayerPtr
 init_current()
 {
-  auto c = init_layer();
+  LayerPtr c = init_layer();
   for (ssize_t i = 0; i < Nx; ++ i) {
     for (ssize_t j = 0; j < Ny; ++ j) {
       for (ssize_t k = 0; k < Nz; ++ k) {
@@ -115,11 +108,11 @@ calc_next_layer(const Layer &p, const Layer &c, Layer &n)
   for (ssize_t i = 0; i < Nx; ++ i) {
     for (ssize_t j = 0; j < Ny; ++ j) {
       for (ssize_t k = 0; k < Nz; ++ k) {
-        auto c_val = 2 * c(i, j, k);
-        auto d2u_dx2 = (c(i - 1, j, k) + c(i + 1, j, k) - c_val) / sqr(Hx);
-        auto d2u_dy2 = (c(i, j - 1, k) + c(i, j + 1, k) - c_val) / sqr(Hy);
-        auto d2u_dz2 = (c(i, j, k - 1) + c(i, j, k + 1) - c_val) / sqr(Hz);
-        auto u_H = d2u_dx2 + d2u_dy2 + d2u_dz2;
+        double c_val = 2 * c(i, j, k);
+        double d2u_dx2 = (c(i - 1, j, k) + c(i + 1, j, k) - c_val) / sqr(Hx);
+        double d2u_dy2 = (c(i, j - 1, k) + c(i, j + 1, k) - c_val) / sqr(Hy);
+        double d2u_dz2 = (c(i, j, k - 1) + c(i, j, k + 1) - c_val) / sqr(Hz);
+        double u_H = d2u_dx2 + d2u_dy2 + d2u_dz2;
 
         n.set(i, j, k, c_val - p(i, j, k) + u_H * sqr(Ht));
       }
@@ -145,10 +138,13 @@ evaluate(const Layer &layer, double t=Lt)
 static inline void
 calc_last_layer(LayerPtr &p, LayerPtr &c, LayerPtr &n)
 {
+  LayerPtr t;
   for (ssize_t i = 0; i < Nt; ++ i) {
     calc_next_layer(*p, *c, *n);
-    p.swap(c);
-    c.swap(n);
+    t = p;
+    p = c;
+    c = n;
+    n = t;
   }
 }
 
@@ -157,15 +153,19 @@ main(void)
 {
   std::ios_base::sync_with_stdio(false);
 
-  auto p = init_prev();
-  auto c = init_current();
-  auto n = init_layer();
+  LayerPtr p = init_prev();
+  LayerPtr c = init_current();
+  LayerPtr n = init_layer();
 
-  volatile auto clock_count = std::clock();
+  volatile clock_t clock_count = std::clock();
   calc_last_layer(p, c, n);
   clock_count = std::clock() - clock_count;
 
   double seconds = static_cast<double>(clock_count) / CLOCKS_PER_SEC;
 
   std::cout << nelems << "," << seconds << "," << 0 << "," << evaluate(*c) << std::endl;
+
+  delete p;
+  delete c;
+  delete n;
 }
