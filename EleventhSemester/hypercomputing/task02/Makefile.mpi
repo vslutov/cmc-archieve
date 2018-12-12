@@ -1,8 +1,8 @@
 EXENAME=parmpi
 EXECUTABLE=$(EXENAME).128 $(EXENAME).256 $(EXENAME).512 $(EXENAME).1024 $(EXENAME).1536
 
-CXX = mpixlcxx
-CXXFLAGS = -O2
+CXX = /bgsys/drivers/ppcfloor/comm/fast/bin/mpixlcxx
+CXXFLAGS = -O3
 
 %.128: %.cpp
 	$(CXX) $(CXXFLAGS) -D NELEMS=128 -o $@ $^
