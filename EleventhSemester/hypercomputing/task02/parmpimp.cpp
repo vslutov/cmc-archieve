@@ -463,7 +463,7 @@ main(int argc, char **argv)
   // World size
   const long Px = root(world_size, 3);
   const long Py = root(world_size / Px, 2);
-  const long Pz = Py;
+  const long Pz = world_size / (Px * Py);
 
   // Process coord in world
   const long Mx = world_rank / (Py * Pz);
