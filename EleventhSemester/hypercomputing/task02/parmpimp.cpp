@@ -129,7 +129,7 @@ init_current(ssize_t Sx, ssize_t Sy, ssize_t Sz, ssize_t DCx, ssize_t DCy, ssize
 
 // y transport
 static inline void
-send_y_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, const Layer &layer) 
+send_y_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, const Layer &layer)
 {
   // move last y layer to buffer
   #pragma omp parallel for
@@ -144,7 +144,7 @@ send_y_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize
 }
 
 static inline void
-recieve_y_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer) 
+recieve_y_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
 {
   const ssize_t sender = (Mx * Py + (Py + My - 1) % Py) * Pz + Mz;
   MPI_Recv(layer.py.data(), layer.py.size(), MPI_DOUBLE, sender, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -166,7 +166,7 @@ send_y_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssiz
 }
 
 static inline void
-recieve_y_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer) 
+recieve_y_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
 {
   const ssize_t sender = (Mx * Py + (My + 1) % Py) * Pz + Mz;
   MPI_Recv(layer.ny.data(), layer.ny.size(), MPI_DOUBLE, sender, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -188,7 +188,7 @@ contact_y_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, s
 
 // x transport
 static inline void
-send_x_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, const Layer &layer) 
+send_x_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, const Layer &layer)
 {
   // move last y layer to buffer
   #pragma omp parallel for
@@ -203,7 +203,7 @@ send_x_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize
 }
 
 static inline void
-recieve_x_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer) 
+recieve_x_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
 {
   const ssize_t sender = ((Px + Mx - 1) % Px * Py + My) * Pz + Mz;
   MPI_Recv(layer.px.data(), layer.px.size(), MPI_DOUBLE, sender, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -225,7 +225,7 @@ send_x_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssiz
 }
 
 static inline void
-recieve_x_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer) 
+recieve_x_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
 {
   const ssize_t sender = ((Mx + 1) % Px * Py + My) * Pz + Mz;
   MPI_Recv(layer.nx.data(), layer.nx.size(), MPI_DOUBLE, sender, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -247,7 +247,7 @@ contact_x_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, s
 
 // x transport
 static inline void
-send_z_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, const Layer &layer) 
+send_z_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, const Layer &layer)
 {
   // move last y layer to buffer
   #pragma omp parallel for
@@ -262,7 +262,7 @@ send_z_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize
 }
 
 static inline void
-recieve_z_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer) 
+recieve_z_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
 {
   const ssize_t sender = (Mx * Py + My) * Pz + (Pz + Mz - 1) % Pz;
   MPI_Recv(layer.pz.data(), layer.pz.size(), MPI_DOUBLE, sender, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -284,7 +284,7 @@ send_z_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssiz
 }
 
 static inline void
-recieve_z_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer) 
+recieve_z_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
 {
   const ssize_t sender = (Mx * Py + My) * Pz + (Mz + 1) % Pz;
   MPI_Recv(layer.nz.data(), layer.nz.size(), MPI_DOUBLE, sender, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -476,15 +476,15 @@ main(int argc, char **argv)
   const ssize_t My = (world_rank % (Py * Pz) / Pz);
   const ssize_t Mz = world_rank % Pz;
 
-  if (world_rank > Px * Py * Pz) {
+  if (world_rank >= Px * Py * Pz) {
     MPI_Finalize();
     return 0;
   }
 
   // World cell size
-  const ssize_t Dx = ceil(static_cast<double>(Nx) / Px);
-  const ssize_t Dy = ceil(static_cast<double>(Ny) / Py);
-  const ssize_t Dz = ceil(static_cast<double>(Nz) / Pz);
+  const ssize_t Dx = Nx / Px + (Nx % Px != 0);
+  const ssize_t Dy = Ny / Py + (Ny % Py != 0);
+  const ssize_t Dz = Nz / Pz + (Nz % Pz != 0);
 
   // Current cell size
   const ssize_t DCx = Mx < Px - 1 ? Dx : Nx - Mx * Dx;

@@ -468,15 +468,15 @@ main(int argc, char **argv)
   const ssize_t My = (world_rank % (Py * Pz) / Pz);
   const ssize_t Mz = world_rank % Pz;
 
-  if (world_rank > Px * Py * Pz) {
+  if (world_rank >= Px * Py * Pz) {
     MPI_Finalize();
     return 0;
   }
 
   // World cell size
-  const ssize_t Dx = ceil(static_cast<double>(Nx) / Px);
-  const ssize_t Dy = ceil(static_cast<double>(Ny) / Py);
-  const ssize_t Dz = ceil(static_cast<double>(Nz) / Pz);
+  const ssize_t Dx = Nx / Px + (Nx % Px != 0);
+  const ssize_t Dy = Ny / Py + (Ny % Py != 0);
+  const ssize_t Dz = Nz / Pz + (Nz % Pz != 0);
 
   // Current cell size
   const ssize_t DCx = Mx < Px - 1 ? Dx : Nx - Mx * Dx;
