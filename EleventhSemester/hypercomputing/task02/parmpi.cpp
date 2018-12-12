@@ -17,11 +17,11 @@ const double Ly = PI * 50;
 const double Lz = PI * 50;
 const double Lt = PI * 0.32;
 
-const ssize_t nelems = NELEMS;
-const ssize_t Nx = nelems;
-const ssize_t Ny = nelems;
-const ssize_t Nz = nelems;
-const ssize_t Nt = 20;
+const long nelems = NELEMS;
+const long Nx = nelems;
+const long Ny = nelems;
+const long Nz = nelems;
+const long Nt = 20;
 
 const double Hx = Lx / (Nx + 1);
 const double Hy = Ly / Ny;
@@ -40,7 +40,7 @@ static std::vector<double> buffer;
 
 struct Layer {
 public:
-  Layer(ssize_t _DCx, ssize_t _DCy, ssize_t _DCz) :
+  Layer(long _DCx, long _DCy, long _DCz) :
     DCx(_DCx),
     DCy(_DCy),
     DCz(_DCz),
@@ -55,12 +55,12 @@ public:
   }
 
   void
-  set(ssize_t i, ssize_t j, ssize_t k, double v) {
+  set(long i, long j, long k, double v) {
     data[(i * DCy + j) * DCz + k] = v;
   }
 
   double
-  operator()(ssize_t i, ssize_t j, ssize_t k) const {
+  operator()(long i, long j, long k) const {
     if (i < 0) {
       return px[j * DCz + k];
     }
@@ -88,23 +88,23 @@ public:
     return data[(i * DCy + j) * DCz + k];
   }
 
-  const ssize_t DCx, DCy, DCz;
+  const long DCx, DCy, DCz;
   std::vector<double> data, px, nx, py, ny, pz, nz;
 };
 
 static inline Layer
-init_layer(ssize_t DCx, ssize_t DCy, ssize_t DCz)
+init_layer(long DCx, long DCy, long DCz)
 {
   return Layer(DCx, DCy, DCz);
 }
 
 static inline Layer
-init_prev(ssize_t Sx, ssize_t Sy, ssize_t Sz, ssize_t DCx, ssize_t DCy, ssize_t DCz)
+init_prev(long Sx, long Sy, long Sz, long DCx, long DCy, long DCz)
 {
   Layer p = init_layer(DCx, DCy, DCz);
-  for (ssize_t i = 0; i < DCx; ++ i) {
-    for (ssize_t j = 0; j < DCy; ++ j) {
-      for (ssize_t k = 0; k < DCz; ++ k) {
+  for (long i = 0; i < DCx; ++ i) {
+    for (long j = 0; j < DCy; ++ j) {
+      for (long k = 0; k < DCz; ++ k) {
         p.set(i, j, k, u((i + 1 + Sx) * Hx, (j + Sy) * Hy, (k + 1 + Sz) * Hz, -Ht));
       }
     }
@@ -113,12 +113,12 @@ init_prev(ssize_t Sx, ssize_t Sy, ssize_t Sz, ssize_t DCx, ssize_t DCy, ssize_t 
 }
 
 static inline Layer
-init_current(ssize_t Sx, ssize_t Sy, ssize_t Sz, ssize_t DCx, ssize_t DCy, ssize_t DCz)
+init_current(long Sx, long Sy, long Sz, long DCx, long DCy, long DCz)
 {
   Layer c = init_layer(DCx, DCy, DCz);
-  for (ssize_t i = 0; i < DCx; ++ i) {
-    for (ssize_t j = 0; j < DCy; ++ j) {
-      for (ssize_t k = 0; k < DCz; ++ k) {
+  for (long i = 0; i < DCx; ++ i) {
+    for (long j = 0; j < DCy; ++ j) {
+      for (long k = 0; k < DCz; ++ k) {
         c.set(i, j, k, u((i + 1 + Sx) * Hx, (j + Sy) * Hy, (k + 1 + Sz) * Hz, 0));
       }
     }
@@ -128,56 +128,54 @@ init_current(ssize_t Sx, ssize_t Sy, ssize_t Sz, ssize_t DCx, ssize_t DCy, ssize
 
 // y transport
 static inline void
-send_y_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, const Layer &layer)
+send_y_forward(long Mx, long My, long Mz, long Px, long Py, long Pz, const Layer &layer)
 {
-  // move last y layer to buffer
-  for (ssize_t i = 0; i < layer.DCx; ++ i) {
-    for (ssize_t k = 0; k < layer.DCz; ++ k) {
+  for (long i = 0; i < layer.DCx; ++ i) {
+    for (long k = 0; k < layer.DCz; ++ k) {
       buffer[i * layer.DCz + k] = layer(i, layer.DCy - 1, k);
     }
   }
 
-  const ssize_t reciever = (Mx * Py + (My + 1) % Py) * Pz + Mz;
+  const long reciever = (Mx * Py + (My + 1) % Py) * Pz + Mz;
   MPI_Send(buffer.data(), layer.ny.size(), MPI_DOUBLE, reciever, 0, MPI_COMM_WORLD);
 }
 
 static inline void
-recieve_y_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
+recieve_y_forward(long Mx, long My, long Mz, long Px, long Py, long Pz, Layer &layer)
 {
-  const ssize_t sender = (Mx * Py + (Py + My - 1) % Py) * Pz + Mz;
+  const long sender = (Mx * Py + (Py + My - 1) % Py) * Pz + Mz;
   MPI_Recv(layer.py.data(), layer.py.size(), MPI_DOUBLE, sender, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 }
 
 static inline void
-send_y_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, const Layer &layer)
+send_y_backward(long Mx, long My, long Mz, long Px, long Py, long Pz, const Layer &layer)
 {
-  // move first y layer to buffer
-  for (ssize_t i = 0; i < layer.DCx; ++ i) {
-    for (ssize_t k = 0; k < layer.DCz; ++ k) {
+  for (long i = 0; i < layer.DCx; ++ i) {
+    for (long k = 0; k < layer.DCz; ++ k) {
       buffer[i * layer.DCz + k] = layer(i, 0, k);
     }
   }
 
-  const ssize_t reciever = (Mx * Py + (Py + My - 1) % Py) * Pz + Mz;
+  const long reciever = (Mx * Py + (Py + My - 1) % Py) * Pz + Mz;
   MPI_Send(buffer.data(), layer.py.size(), MPI_DOUBLE, reciever, 0, MPI_COMM_WORLD);
 }
 
 static inline void
-recieve_y_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
+recieve_y_backward(long Mx, long My, long Mz, long Px, long Py, long Pz, Layer &layer)
 {
-  const ssize_t sender = (Mx * Py + (My + 1) % Py) * Pz + Mz;
+  const long sender = (Mx * Py + (My + 1) % Py) * Pz + Mz;
   MPI_Recv(layer.ny.data(), layer.ny.size(), MPI_DOUBLE, sender, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 }
 
 static inline void
-contact_y_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
+contact_y_forward(long Mx, long My, long Mz, long Px, long Py, long Pz, Layer &layer)
 {
   send_y_forward(Mx, My, Mz, Px, Py, Pz, layer);
   recieve_y_backward(Mx, My, Mz, Px, Py, Pz, layer);
 }
 
 static inline void
-contact_y_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
+contact_y_backward(long Mx, long My, long Mz, long Px, long Py, long Pz, Layer &layer)
 {
   recieve_y_forward(Mx, My, Mz, Px, Py, Pz, layer);
   send_y_backward(Mx, My, Mz, Px, Py, Pz, layer);
@@ -185,56 +183,54 @@ contact_y_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, s
 
 // x transport
 static inline void
-send_x_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, const Layer &layer)
+send_x_forward(long Mx, long My, long Mz, long Px, long Py, long Pz, const Layer &layer)
 {
-  // move last y layer to buffer
-  for (ssize_t j = 0; j < layer.DCy; ++ j) {
-    for (ssize_t k = 0; k < layer.DCz; ++ k) {
+  for (long j = 0; j < layer.DCy; ++ j) {
+    for (long k = 0; k < layer.DCz; ++ k) {
       buffer[j * layer.DCz + k] = layer(layer.DCx - 1, j, k);
     }
   }
 
-  const ssize_t reciever = ((Mx + 1) % Px * Py + My) * Pz + Mz;
+  const long reciever = ((Mx + 1) % Px * Py + My) * Pz + Mz;
   MPI_Send(buffer.data(), layer.nx.size(), MPI_DOUBLE, reciever, 0, MPI_COMM_WORLD);
 }
 
 static inline void
-recieve_x_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
+recieve_x_forward(long Mx, long My, long Mz, long Px, long Py, long Pz, Layer &layer)
 {
-  const ssize_t sender = ((Px + Mx - 1) % Px * Py + My) * Pz + Mz;
+  const long sender = ((Px + Mx - 1) % Px * Py + My) * Pz + Mz;
   MPI_Recv(layer.px.data(), layer.px.size(), MPI_DOUBLE, sender, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 }
 
 static inline void
-send_x_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, const Layer &layer)
+send_x_backward(long Mx, long My, long Mz, long Px, long Py, long Pz, const Layer &layer)
 {
-  // move first y layer to buffer
-  for (ssize_t j = 0; j < layer.DCy; ++ j) {
-    for (ssize_t k = 0; k < layer.DCz; ++ k) {
+  for (long j = 0; j < layer.DCy; ++ j) {
+    for (long k = 0; k < layer.DCz; ++ k) {
       buffer[j * layer.DCz + k] = layer(0, j, k);
     }
   }
 
-  const ssize_t reciever = ((Px + Mx - 1) % Px * Py + My) * Pz + Mz;
+  const long reciever = ((Px + Mx - 1) % Px * Py + My) * Pz + Mz;
   MPI_Send(buffer.data(), layer.px.size(), MPI_DOUBLE, reciever, 0, MPI_COMM_WORLD);
 }
 
 static inline void
-recieve_x_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
+recieve_x_backward(long Mx, long My, long Mz, long Px, long Py, long Pz, Layer &layer)
 {
-  const ssize_t sender = ((Mx + 1) % Px * Py + My) * Pz + Mz;
+  const long sender = ((Mx + 1) % Px * Py + My) * Pz + Mz;
   MPI_Recv(layer.nx.data(), layer.nx.size(), MPI_DOUBLE, sender, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 }
 
 static inline void
-contact_x_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
+contact_x_forward(long Mx, long My, long Mz, long Px, long Py, long Pz, Layer &layer)
 {
   send_x_forward(Mx, My, Mz, Px, Py, Pz, layer);
   recieve_x_backward(Mx, My, Mz, Px, Py, Pz, layer);
 }
 
 static inline void
-contact_x_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
+contact_x_backward(long Mx, long My, long Mz, long Px, long Py, long Pz, Layer &layer)
 {
   recieve_x_forward(Mx, My, Mz, Px, Py, Pz, layer);
   send_x_backward(Mx, My, Mz, Px, Py, Pz, layer);
@@ -242,63 +238,61 @@ contact_x_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, s
 
 // x transport
 static inline void
-send_z_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, const Layer &layer)
+send_z_forward(long Mx, long My, long Mz, long Px, long Py, long Pz, const Layer &layer)
 {
-  // move last y layer to buffer
-  for (ssize_t i = 0; i < layer.DCx; ++ i) {
-    for (ssize_t j = 0; j < layer.DCy; ++ j) {
+  for (long i = 0; i < layer.DCx; ++ i) {
+    for (long j = 0; j < layer.DCy; ++ j) {
       buffer[i * layer.DCy + j] = layer(i, j, layer.DCz - 1);
     }
   }
 
-  const ssize_t reciever = (Mx * Py + My) * Pz + (Mz + 1) % Pz;
+  const long reciever = (Mx * Py + My) * Pz + (Mz + 1) % Pz;
   MPI_Send(buffer.data(), layer.nz.size(), MPI_DOUBLE, reciever, 0, MPI_COMM_WORLD);
 }
 
 static inline void
-recieve_z_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
+recieve_z_forward(long Mx, long My, long Mz, long Px, long Py, long Pz, Layer &layer)
 {
-  const ssize_t sender = (Mx * Py + My) * Pz + (Pz + Mz - 1) % Pz;
+  const long sender = (Mx * Py + My) * Pz + (Pz + Mz - 1) % Pz;
   MPI_Recv(layer.pz.data(), layer.pz.size(), MPI_DOUBLE, sender, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 }
 
 static inline void
-send_z_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, const Layer &layer)
+send_z_backward(long Mx, long My, long Mz, long Px, long Py, long Pz, const Layer &layer)
 {
-  // move first y layer to buffer
-  for (ssize_t i = 0; i < layer.DCx; ++ i) {
-    for (ssize_t j = 0; j < layer.DCy; ++ j) {
+  for (long i = 0; i < layer.DCx; ++ i) {
+    for (long j = 0; j < layer.DCy; ++ j) {
       buffer[i * layer.DCy + j] = layer(i, j, 0);
     }
   }
 
-  const ssize_t reciever = (Mx * Py + My) * Pz + (Pz + Mz - 1) % Pz;
+  const long reciever = (Mx * Py + My) * Pz + (Pz + Mz - 1) % Pz;
   MPI_Send(buffer.data(), layer.pz.size(), MPI_DOUBLE, reciever, 0, MPI_COMM_WORLD);
 }
 
 static inline void
-recieve_z_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
+recieve_z_backward(long Mx, long My, long Mz, long Px, long Py, long Pz, Layer &layer)
 {
-  const ssize_t sender = (Mx * Py + My) * Pz + (Mz + 1) % Pz;
+  const long sender = (Mx * Py + My) * Pz + (Mz + 1) % Pz;
   MPI_Recv(layer.nz.data(), layer.nz.size(), MPI_DOUBLE, sender, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 }
 
 static inline void
-contact_z_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
+contact_z_forward(long Mx, long My, long Mz, long Px, long Py, long Pz, Layer &layer)
 {
   send_z_forward(Mx, My, Mz, Px, Py, Pz, layer);
   recieve_z_backward(Mx, My, Mz, Px, Py, Pz, layer);
 }
 
 static inline void
-contact_z_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
+contact_z_backward(long Mx, long My, long Mz, long Px, long Py, long Pz, Layer &layer)
 {
   recieve_z_forward(Mx, My, Mz, Px, Py, Pz, layer);
   send_z_backward(Mx, My, Mz, Px, Py, Pz, layer);
 }
 
 static inline void
-sync(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer &layer)
+sync(long Mx, long My, long Mz, long Px, long Py, long Pz, Layer &layer)
 {
   // Transport along y axis
   if (Py % 2) {
@@ -362,11 +356,11 @@ sync(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Lay
 }
 
 static inline void
-calc_next_layer(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, const Layer &p, const Layer &c, Layer &n)
+calc_next_layer(long Mx, long My, long Mz, long Px, long Py, long Pz, const Layer &p, const Layer &c, Layer &n)
 {
-  for (ssize_t i = 0; i < n.DCx; ++ i) {
-    for (ssize_t j = 0; j < n.DCy; ++ j) {
-      for (ssize_t k = 0; k < n.DCz; ++ k) {
+  for (long i = 0; i < n.DCx; ++ i) {
+    for (long j = 0; j < n.DCy; ++ j) {
+      for (long k = 0; k < n.DCz; ++ k) {
         double c_val = 2 * c(i, j, k);
         double d2u_dx2 = (c(i - 1, j, k) + c(i + 1, j, k) - c_val) / sqr(Hx);
         double d2u_dy2 = (c(i, j - 1, k) + c(i, j + 1, k) - c_val) / sqr(Hy);
@@ -381,11 +375,11 @@ calc_next_layer(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssiz
 }
 
 static inline double
-raw_evaluate(ssize_t Sx, ssize_t Sy, ssize_t Sz, const Layer &layer, double t) {
+raw_evaluate(long Sx, long Sy, long Sz, const Layer &layer, double t) {
   double l2 = 0;
-  for (ssize_t i = 0; i < layer.DCx; ++ i) {
-    for (ssize_t j = 0; j < layer.DCy; ++ j) {
-      for (ssize_t k = 0; k < layer.DCz; ++ k) {
+  for (long i = 0; i < layer.DCx; ++ i) {
+    for (long j = 0; j < layer.DCy; ++ j) {
+      for (long k = 0; k < layer.DCz; ++ k) {
         l2 += sqr(layer(i, j, k) - u((i + 1 + Sx) * Hx, (j + Sy) * Hy, (k + 1 + Sz) * Hz, t));
       }
     }
@@ -394,10 +388,10 @@ raw_evaluate(ssize_t Sx, ssize_t Sy, ssize_t Sz, const Layer &layer, double t) {
 }
 
 static inline double
-evaluate(ssize_t world_size, const Layer &layer, double t=Lt)
+evaluate(long world_size, const Layer &layer, double t=Lt)
 {
   double l2 = raw_evaluate(0, 0, 0, layer, t);
-  for (ssize_t i = 1; i < world_size; ++ i) {
+  for (long i = 1; i < world_size; ++ i) {
     double elem;
     MPI_Recv(&elem, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     l2 += elem;
@@ -406,17 +400,17 @@ evaluate(ssize_t world_size, const Layer &layer, double t=Lt)
 }
 
 static inline void
-help_evaluate(ssize_t Sx, ssize_t Sy, ssize_t Sz, const Layer &layer, double t=Lt)
+help_evaluate(long Sx, long Sy, long Sz, const Layer &layer, double t=Lt)
 {
   double l2 = raw_evaluate(Sx, Sy, Sz, layer, t);
   MPI_Send(&l2, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
 }
 
 static inline void
-calc_last_layer(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer *p, Layer *c, Layer *n)
+calc_last_layer(long Mx, long My, long Mz, long Px, long Py, long Pz, Layer *p, Layer *c, Layer *n)
 {
   Layer *t;
-  for (ssize_t i = 0; i < Nt; ++ i) {
+  for (long i = 0; i < Nt; ++ i) {
     calc_next_layer(Mx, My, Mz, Px, Py, Pz, *p, *c, *n);
     t = p;
     p = c;
@@ -427,19 +421,19 @@ calc_last_layer(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssiz
 
 // Utils
 static inline int
-npow(int e, ssize_t p)
+npow(int e, long p)
 {
   int val = 1;
-  for (ssize_t i = 0; i < p; ++ i) {
+  for (long i = 0; i < p; ++ i) {
     val *= e;
   }
   return val;
 }
 
-static inline ssize_t
-root(int x, ssize_t base)
+static inline long
+root(int x, long base)
 {
-  ssize_t a = 1;
+  long a = 1;
   for(; npow(a, base) <= x; ++a) {
   }
   return a - 1;
@@ -459,30 +453,35 @@ main(int argc, char **argv)
 
   // Init coords
   // World size
-  const ssize_t Px = root(world_size, 3);
-  const ssize_t Py = root(world_size / Px, 2);
-  const ssize_t Pz = Py;
+  const long Px = root(world_size, 3);
+  const long Py = root(world_size / Px, 2);
+  const long Pz = Py;
 
   // Process coord in world
-  const ssize_t Mx = world_rank / (Py * Pz);
-  const ssize_t My = (world_rank % (Py * Pz) / Pz);
-  const ssize_t Mz = world_rank % Pz;
+  const long Mx = world_rank / (Py * Pz);
+  const long My = (world_rank % (Py * Pz) / Pz);
+  const long Mz = world_rank % Pz;
 
-  if (world_rank >= Px * Py * Pz) {
+  long process_limit = Px * Py * Pz;
+  if (world_size != process_limit)
+  {
+    if (world_rank == 0) {
+      std::cerr << "Please run this program with " << process_limit << " MPI processes" << std::endl;
+    }
     MPI_Finalize();
-    return 0;
+    return 1;
   }
 
   // World cell size
-  const ssize_t Dx = Nx / Px + (Nx % Px != 0);
-  const ssize_t Dy = Ny / Py + (Ny % Py != 0);
-  const ssize_t Dz = Nz / Pz + (Nz % Pz != 0);
+  const long Dx = Nx / Px + (Nx % Px != 0);
+  const long Dy = Ny / Py + (Ny % Py != 0);
+  const long Dz = Nz / Pz + (Nz % Pz != 0);
 
   // Current cell size
-  const ssize_t DCx = Mx < Px - 1 ? Dx : Nx - Mx * Dx;
-  const ssize_t DCy = My < Py - 1 ? Dy : Ny - My * Dy;
-  const ssize_t DCz = Mz < Pz - 1 ? Dz : Nz - Mz * Dz;
-  const ssize_t max_size = (DCx >= DCy && DCx >= DCz) ? DCx : (
+  const long DCx = Mx < Px - 1 ? Dx : Nx - Mx * Dx;
+  const long DCy = My < Py - 1 ? Dy : Ny - My * Dy;
+  const long DCz = Mz < Pz - 1 ? Dz : Nz - Mz * Dz;
+  const long max_size = (DCx >= DCy && DCx >= DCz) ? DCx : (
                             (DCy >= DCz) ? DCy : DCz
                            );
 
