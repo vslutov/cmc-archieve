@@ -390,7 +390,7 @@ raw_evaluate(ssize_t Sx, ssize_t Sy, ssize_t Sz, const Layer &layer, double t) {
       }
     }
   }
-  return l2;
+  return l2 / Nx / Ny / Nz;
 }
 
 static inline double
@@ -487,25 +487,17 @@ main(int argc, char **argv)
                            );
 
   // Init buffer
-  // std::cout << max_size << " " << max_size * max_size << std::endl;
   buffer.resize(max_size * max_size);
-  // std::cout << "Buffer resized" << std::endl;
 
   // Init layers
   Layer c = init_current(Mx * Dx, My * Dy, Mz * Dz, DCx, DCy, DCz);
-  // std::cout << "c init" << std::endl;
   sync(Mx, My, Mz, Px, Py, Pz, c);
-  // std::cout << "c sync" << std::endl;
   Layer p = init_prev(Mx * Dx, My * Dy, Mz * Dz, DCx, DCy, DCz);
-  // std::cout << "p init" << std::endl;
   sync(Mx, My, Mz, Px, Py, Pz, p);
-  // std::cout << "p sync" << std::endl;
   Layer n = init_layer(DCx, DCy, DCz);
-  // std::cout << "n init" << std::endl;
 
   MPI_Barrier(MPI_COMM_WORLD);
   volatile clock_t clock_count = std::clock();
-  // std::cout << "calc start" << std::endl;
   calc_last_layer(Mx, My, Mz, Px, Py, Pz, &p, &c, &n);
   MPI_Barrier(MPI_COMM_WORLD);
   clock_count = std::clock() - clock_count;

@@ -37,7 +37,7 @@ u(double x, double y, double z, double t)
   return std::sin(2 * PI / Lx * x) * std::sin(PI / Lz * z) * std::cos(A * t + 2 * PI / Ly * y);
 }
 
-static double *buffer;
+static std::vector<double> buffer;
 
 struct Layer {
 public:
@@ -93,36 +93,34 @@ public:
   std::vector<double> data, px, nx, py, ny, pz, nz;
 };
 
-#define LayerPtr Layer *
-
-static inline LayerPtr
+static inline Layer
 init_layer(ssize_t DCx, ssize_t DCy, ssize_t DCz)
 {
-  return new Layer(DCx, DCy, DCz);
+  return Layer(DCx, DCy, DCz);
 }
 
-static inline LayerPtr
+static inline Layer
 init_prev(ssize_t Sx, ssize_t Sy, ssize_t Sz, ssize_t DCx, ssize_t DCy, ssize_t DCz)
 {
-  LayerPtr p = init_layer(DCx, DCy, DCz);
+  Layer p = init_layer(DCx, DCy, DCz);
   for (ssize_t i = 0; i < DCx; ++ i) {
     for (ssize_t j = 0; j < DCy; ++ j) {
       for (ssize_t k = 0; k < DCz; ++ k) {
-        p->set(i, j, k, u((i + 1 + Sx) * Hx, (j + Sy) * Hy, (k + 1 + Sz) * Hz, -Ht));
+        p.set(i, j, k, u((i + 1 + Sx) * Hx, (j + Sy) * Hy, (k + 1 + Sz) * Hz, -Ht));
       }
     }
   }
   return p;
 }
 
-static inline LayerPtr
+static inline Layer
 init_current(ssize_t Sx, ssize_t Sy, ssize_t Sz, ssize_t DCx, ssize_t DCy, ssize_t DCz)
 {
-  LayerPtr c = init_layer(DCx, DCy, DCz);
+  Layer c = init_layer(DCx, DCy, DCz);
   for (ssize_t i = 0; i < DCx; ++ i) {
     for (ssize_t j = 0; j < DCy; ++ j) {
       for (ssize_t k = 0; k < DCz; ++ k) {
-        c->set(i, j, k, u((i + 1 + Sx) * Hx, (j + Sy) * Hy, (k + 1 + Sz) * Hz, 0));
+        c.set(i, j, k, u((i + 1 + Sx) * Hx, (j + Sy) * Hy, (k + 1 + Sz) * Hz, 0));
       }
     }
   }
@@ -142,7 +140,7 @@ send_y_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize
   }
 
   const ssize_t reciever = (Mx * Py + (My + 1) % Py) * Pz + Mz;
-  MPI_Send(buffer, layer.ny.size(), MPI_DOUBLE, reciever, 0, MPI_COMM_WORLD);
+  MPI_Send(buffer.data(), layer.ny.size(), MPI_DOUBLE, reciever, 0, MPI_COMM_WORLD);
 }
 
 static inline void
@@ -164,7 +162,7 @@ send_y_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssiz
   }
 
   const ssize_t reciever = (Mx * Py + (Py + My - 1) % Py) * Pz + Mz;
-  MPI_Send(buffer, layer.py.size(), MPI_DOUBLE, reciever, 0, MPI_COMM_WORLD);
+  MPI_Send(buffer.data(), layer.py.size(), MPI_DOUBLE, reciever, 0, MPI_COMM_WORLD);
 }
 
 static inline void
@@ -201,7 +199,7 @@ send_x_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize
   }
 
   const ssize_t reciever = ((Mx + 1) % Px * Py + My) * Pz + Mz;
-  MPI_Send(buffer, layer.nx.size(), MPI_DOUBLE, reciever, 0, MPI_COMM_WORLD);
+  MPI_Send(buffer.data(), layer.nx.size(), MPI_DOUBLE, reciever, 0, MPI_COMM_WORLD);
 }
 
 static inline void
@@ -223,7 +221,7 @@ send_x_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssiz
   }
 
   const ssize_t reciever = ((Px + Mx - 1) % Px * Py + My) * Pz + Mz;
-  MPI_Send(buffer, layer.px.size(), MPI_DOUBLE, reciever, 0, MPI_COMM_WORLD);
+  MPI_Send(buffer.data(), layer.px.size(), MPI_DOUBLE, reciever, 0, MPI_COMM_WORLD);
 }
 
 static inline void
@@ -260,7 +258,7 @@ send_z_forward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize
   }
 
   const ssize_t reciever = (Mx * Py + My) * Pz + (Mz + 1) % Pz;
-  MPI_Send(buffer, layer.nz.size(), MPI_DOUBLE, reciever, 0, MPI_COMM_WORLD);
+  MPI_Send(buffer.data(), layer.nz.size(), MPI_DOUBLE, reciever, 0, MPI_COMM_WORLD);
 }
 
 static inline void
@@ -282,7 +280,7 @@ send_z_backward(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssiz
   }
 
   const ssize_t reciever = (Mx * Py + My) * Pz + (Pz + Mz - 1) % Pz;
-  MPI_Send(buffer, layer.pz.size(), MPI_DOUBLE, reciever, 0, MPI_COMM_WORLD);
+  MPI_Send(buffer.data(), layer.pz.size(), MPI_DOUBLE, reciever, 0, MPI_COMM_WORLD);
 }
 
 static inline void
@@ -400,7 +398,7 @@ raw_evaluate(ssize_t Sx, ssize_t Sy, ssize_t Sz, const Layer &layer, double t) {
       }
     }
   }
-  return l2;
+  return l2 / Nx / Ny / Nz;
 }
 
 static inline double
@@ -423,9 +421,9 @@ help_evaluate(ssize_t Sx, ssize_t Sy, ssize_t Sz, const Layer &layer, double t=L
 }
 
 static inline void
-calc_last_layer(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, LayerPtr &p, LayerPtr &c, LayerPtr &n)
+calc_last_layer(ssize_t Mx, ssize_t My, ssize_t Mz, ssize_t Px, ssize_t Py, ssize_t Pz, Layer *p, Layer *c, Layer *n)
 {
-  LayerPtr t;
+  Layer *t;
   for (ssize_t i = 0; i < Nt; ++ i) {
     calc_next_layer(Mx, My, Mz, Px, Py, Pz, *p, *c, *n);
     t = p;
@@ -492,35 +490,34 @@ main(int argc, char **argv)
   const ssize_t DCx = Mx < Px - 1 ? Dx : Nx - Mx * Dx;
   const ssize_t DCy = My < Py - 1 ? Dy : Ny - My * Dy;
   const ssize_t DCz = Mz < Pz - 1 ? Dz : Nz - Mz * Dz;
+  const ssize_t max_size = (DCx >= DCy && DCx >= DCz) ? DCx : (
+                            (DCy >= DCz) ? DCy : DCz
+                           );
 
   // Init buffer
-  buffer = new double[npow(std::max(DCx, std::max(DCy, DCz)), 2)];
+  buffer.resize(max_size * max_size);
 
   // Init layers
-  LayerPtr c = init_current(Mx * Dx, My * Dy, Mz * Dz, DCx, DCy, DCz);
-  sync(Mx, My, Mz, Px, Py, Pz, *c);
-  LayerPtr p = init_prev(Mx * Dx, My * Dy, Mz * Dz, DCx, DCy, DCz);
-  sync(Mx, My, Mz, Px, Py, Pz, *p);
-  LayerPtr n = init_layer(DCx, DCy, DCz);
+  Layer c = init_current(Mx * Dx, My * Dy, Mz * Dz, DCx, DCy, DCz);
+  sync(Mx, My, Mz, Px, Py, Pz, c);
+  Layer p = init_prev(Mx * Dx, My * Dy, Mz * Dz, DCx, DCy, DCz);
+  sync(Mx, My, Mz, Px, Py, Pz, p);
+  Layer n = init_layer(DCx, DCy, DCz);
 
   MPI_Barrier(MPI_COMM_WORLD);
   volatile clock_t clock_count = std::clock();
-  calc_last_layer(Mx, My, Mz, Px, Py, Pz, p, c, n);
+  calc_last_layer(Mx, My, Mz, Px, Py, Pz, &p, &c, &n);
   MPI_Barrier(MPI_COMM_WORLD);
   clock_count = std::clock() - clock_count;
 
   double seconds = static_cast<double>(clock_count) / CLOCKS_PER_SEC;
 
   if (world_rank == 0) {
-    std::cout << world_size << "," << nelems << "," << seconds << "," << 0 << "," << evaluate(Px * Py * Pz, *c) << std::endl;
+    std::cout << world_size << "," << nelems << "," << seconds << "," << 0 << "," << evaluate(Px * Py * Pz, c) << std::endl;
   } else {
-    help_evaluate(Mx * Dx, My * Dy, Mz * Dz, *c);
+    help_evaluate(Mx * Dx, My * Dy, Mz * Dz, c);
   }
 
   // release
-  delete p;
-  delete c;
-  delete n;
-  delete[] buffer;
   MPI_Finalize();
 }
