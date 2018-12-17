@@ -2,7 +2,7 @@ EXENAME=parmpimp
 EXECUTABLE=$(EXENAME).128 $(EXENAME).256 $(EXENAME).512 $(EXENAME).1024 $(EXENAME).1536
 
 CXX = mpixlC
-CXXFLAGS = -O3 -qsmp=omp -qarch=pwr8
+CXXFLAGS = -O2 -qarch=pwr8 -qmaxmem=-1
 
 %.128: %.cpp
 	$(CXX) $(CXXFLAGS) -D NELEMS=128 -o $@ $^
