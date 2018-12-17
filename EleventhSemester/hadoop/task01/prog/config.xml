@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<configuration>
+  <property>
+    <name>mm.groups</name>
+    <value>5</value>
+  </property>
+
+  <property>
+    <name>mm.tags</name>
+    <value>ABC</value>
+  </property>
+
+  <property>
+    <name>mm.float-format</name>
+    <value>%.3f</value>
+  </property>
+
+  <property>
+    <name>mapred.reduce.tasks</name>
+    <value>25</value>
+  </property>
+</configuration>
