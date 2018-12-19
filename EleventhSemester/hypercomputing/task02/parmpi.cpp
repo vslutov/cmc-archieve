@@ -286,23 +286,12 @@ contact_z_backward(Layer &layer)
 }
 
 static inline void
-sync_self_x(Layer &layer)
-{
-  for (long j = 0; j < DCy; ++ j) {
-    for (long k = 0; k < DCz; ++ k) {
-      layer.nx[j * DCz + k] = layer(0, j, k);
-      layer.px[j * DCz + k] = layer(DCx - 1, j, k);
-    }
-  }
-}
-
-static inline void
-sync_self_z(Layer &layer)
+sync_self_y(Layer &layer)
 {
   for (long i = 0; i < DCx; ++ i) {
-    for (long j = 0; j < DCy; ++ j) {
-      layer.nz[i * DCy + j] = layer(i, j, 0);
-      layer.pz[i * DCy + j] = layer(i, j, DCz - 1);
+    for (long k = 0; k < DCz; ++ k) {
+      layer.py[i * DCz + k] = layer(i, DCy - 1, k);
+      layer.ny[i * DCz + k] = layer(i, 0, k);
     }
   }
 }
@@ -312,7 +301,7 @@ sync(Layer &layer)
 {
   // Transport along y axis
   if (Py == 1) {
-    // pass
+    sync_self_y(layer);
   } else if (Py % 2) {
     if (My % 2) {
       contact_y_backward(layer);
@@ -344,7 +333,7 @@ sync(Layer &layer)
 
   // Transport along x axis
   if (Px == 1) {
-    sync_self_x(layer);
+    // pass
   } else if (Mx % 2) {
     contact_x_backward(layer);
     if (Mx != Px - 1) {
@@ -361,7 +350,7 @@ sync(Layer &layer)
 
   // Transport along z axis
   if (Pz == 1) {
-    sync_self_z(layer);
+    // pass
   } else if (Mz % 2) {
     contact_z_backward(layer);
     if (Mz != Pz - 1) {
