@@ -477,9 +477,9 @@ main(int argc, char **argv)
   }
 
   // Process coord in world
-  Mx = world_rank / (Py * Pz);
-  My = (world_rank % (Py * Pz) / Pz);
-  Mz = world_rank % Pz;
+  Mx = world_rank % Px;
+  My = world_rank / Px % Py;
+  Mz = world_rank / (Py * Px);
 
   long process_limit = Px * Py * Pz;
   if (world_size != process_limit)
