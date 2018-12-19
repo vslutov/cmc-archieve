@@ -16,7 +16,6 @@ sqr(double x) {
 const double Lx = PI * 50;
 const double Ly = PI * 50;
 const double Lz = PI * 50;
-const double Lt = PI * 0.32;
 
 const long nelems = NELEMS;
 const long Nx = nelems;
@@ -27,18 +26,19 @@ const long Nt = 20;
 const double Hx = Lx / (Nx + 1);
 const double Hy = Ly / Ny;
 const double Hz = Lz / (Nz + 1);
-const double Ht = Lt / Nt;
+const double Ht = std::min(std::min(Hx, Hy), Hz) * 0.5;
+const double Lt = Ht * Nt;
 
 static long Px, Py, Pz;
 static long Mx, My, Mz;
 static long DCx, DCy, DCz;
 
-const double A = std::sqrt(sqr(2 * PI / Lx) + sqr(2 * PI / Ly) + sqr(PI / Lz));
+const double A = std::sqrt(sqr(4) + sqr(1) + sqr(2));
 
 static inline double
 u(double x, double y, double z, double t)
 {
-  return std::sin(2 * PI / Lx * x) * std::sin(PI / Lz * z) * std::cos(A * t + 2 * PI / Ly * y);
+  return std::sin(4 * x) * std::sin(z) * std::cos(A * t + 2 * y);
 }
 
 static std::vector<double> buffer;
