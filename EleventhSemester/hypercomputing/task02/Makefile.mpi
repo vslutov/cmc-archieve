@@ -1,0 +1,27 @@
+EXENAME=parmpi
+EXECUTABLE=$(EXENAME).128 $(EXENAME).256 $(EXENAME).512 $(EXENAME).1024 $(EXENAME).1536
+
+CXX = mpic++
+CXXFLAGS = -O2
+
+%.128: %.cpp
+	$(CXX) $(CXXFLAGS) -D NELEMS=128 -o $@ $^
+
+%.256: %.cpp
+	$(CXX) $(CXXFLAGS) -D NELEMS=256 -o $@ $^
+
+%.512: %.cpp
+	$(CXX) $(CXXFLAGS) -D NELEMS=512 -o $@ $^
+
+%.1024: %.cpp
+	$(CXX) $(CXXFLAGS) -D NELEMS=1024 -o $@ $^
+
+%.1536: %.cpp
+	$(CXX) $(CXXFLAGS) -D NELEMS=1536 -o $@ $^
+
+all : $(EXECUTABLE)
+
+clean:
+	rm -f $(EXECUTABLE)
+
+.PHONY : all clean test

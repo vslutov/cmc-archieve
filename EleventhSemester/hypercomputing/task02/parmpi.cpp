@@ -449,19 +449,19 @@ main(int argc, char **argv)
   // World size
   switch (world_size) {
     case 32:
-      Px = 4; Py = 4; Pz = 2; break;
+      Px = 2; Py = 4; Pz = 4; break;
     case 64:
       Px = 4; Py = 4; Pz = 4; break;
     case 128:
-      Px = 4; Py = 4; Pz = 8; break;
+      Px = 8; Py = 4; Pz = 4; break;
     case 256:
       Px = 8; Py = 4; Pz = 8; break;
     case 512:
       Px = 8; Py = 8; Pz = 8; break;
     case 1024:
-      Px = 8; Py = 8; Pz = 16; break;
+      Px = 16; Py = 8; Pz = 8; break;
     case 2048:
-      Px = 8; Py = 16; Pz = 16; break;
+      Px = 16; Py = 16; Pz = 8; break;
     default:
       Px = root(world_size, 3);
       Py = root(world_size / Px, 2);
@@ -469,9 +469,9 @@ main(int argc, char **argv)
   }
 
   // Process coord in world
-  Mx = world_rank % Px;
-  My = world_rank / Px % Py;
-  Mz = world_rank / (Py * Px);
+  Mx = world_rank / (Py * Pz);
+  My = world_rank / Pz % Py;
+  Mz = world_rank % Pz;
 
   long process_limit = Px * Py * Pz;
   if (world_size != process_limit)
