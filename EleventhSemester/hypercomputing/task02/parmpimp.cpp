@@ -458,6 +458,51 @@ root(int x, long base)
   return a - 1;
 }
 
+static inline bool
+is_prime(long x) {
+  if (x == 2) {
+    return true;
+  }
+  if (x % 2 == 0) {
+    return false;
+  }
+  long sx = root(x, 2);
+  for (long i = 3; i <= sx; i += 2) {
+    if (x % i == 0) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+static inline void
+calc_size(int world_rank)
+{
+  if (is_prime(world_rank)) {
+    Px = world_rank;
+    Py = Pz = 1;
+    return;
+  }
+
+  Px = Py = Pz = 1;
+
+  for (long i = world_rank / 2; i > 1; --i) {
+    if (is_prime(i)) {
+      while (world_rank % i == 0) {
+        world_rank /= i;
+        if (Px <= Py && Px <= Pz) {
+          Px *= i;
+        } else if (Py <= Px && Py <= Pz) {
+          Py *= i;
+        } else {
+          Pz *= i;
+        }
+      }
+    }
+  }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -488,9 +533,7 @@ main(int argc, char **argv)
     case 2048:
       Px = 16; Py = 16; Pz = 8; break;
     default:
-      Px = root(world_size, 3);
-      Py = root(world_size / Px, 2);
-      Pz = world_size / (Px * Py);
+      calc_size(world_size);
   }
 
   // Process coord in world
