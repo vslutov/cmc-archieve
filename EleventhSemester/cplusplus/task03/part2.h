@@ -5,34 +5,36 @@
 #include <string>
 #include <optional>
 #include <map>
+#include <mutex>
+#include <vector>
 
 struct IShop {
   virtual ~IShop() = default;
 
-  virtual std::weak_ptr<IShop>
-  GetWeakPtr() = 0;
+  virtual std::shared_ptr<IShop>
+  GetSharedPtr() const = 0;
 
   virtual std::optional<double>
-  GetPrice(const std::string &) = 0;
+  GetPrice(const std::string &) const = 0;
 
   virtual void
   Notify(const std::string &, const std::optional<double> &) = 0;
 
   virtual std::string
-  GetPriceList() = 0;
+  GetPriceList() const = 0;
 };
 
 struct IProduct {
   virtual ~IProduct() = default;
 
   virtual void
-  Attach(const std::weak_ptr<IShop> &) = 0;
+  Attach(const std::shared_ptr<IShop> &) = 0;
 
   virtual void
-  Detach(const std::weak_ptr<IShop> &) = 0;
+  Detach(const std::shared_ptr<IShop> &) = 0;
 
   virtual double
-  GetPrice() = 0;
+  GetPrice() const = 0;
 
   virtual void
   StartSales() = 0;
@@ -48,8 +50,9 @@ struct Shop : public IShop {
 private:
   std::weak_ptr<IShop> self;
   std::map<std::string, double> products;
+  mutable std::mutex mutex;
 
-  Shop(const std::string &_name);
+  Shop(const std::string &);
 
 public:
   const std::string name;
@@ -57,30 +60,42 @@ public:
   static std::shared_ptr<Shop>
   CreateShop(const std::string &name);
 
-  virtual std::weak_ptr<IShop>
-  GetWeakPtr() override;
+  virtual std::shared_ptr<IShop>
+  GetSharedPtr() const override;
 
   virtual std::optional<double>
-  GetPrice(const std::string &) override;
+  GetPrice(const std::string &) const override;
 
   virtual void
   Notify(const std::string &, const std::optional<double> &) override;
 
   virtual std::string
-  GetPriceList() override;
+  GetPriceList() const override;
 };
 
 struct Product : IProduct {
+private:
+  std::vector<std::weak_ptr<IShop>> observers;
+  mutable std::mutex mutex;
+  double price;
+  bool isSelling;
+
+  void
+  SendPriceToShop(const std::optional<double> &) const;
+
+public:
+  const std::string name;
+
   Product(const std::string &, double);
 
   virtual void
-  Attach(const std::weak_ptr<IShop> &) override;
+  Attach(const std::shared_ptr<IShop> &) override;
 
   virtual void
-  Detach(const std::weak_ptr<IShop> &) override;
+  Detach(const std::shared_ptr<IShop> &) override;
 
   virtual double
-  GetPrice() override;
+  GetPrice() const override;
 
   virtual void
   StartSales() override;
