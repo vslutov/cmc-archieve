@@ -3,8 +3,8 @@
 int
 main()
 {
-  auto shopPtr1 = Shop::createShop("1");
-  auto shopPtr2 = Shop::createShop("2");
-  auto shopPtr3 = Shop::createShop("3");
+  auto shopPtr1 = Shop::CreateShop("1");
+  auto shopPtr2 = Shop::CreateShop("2");
+  auto shopPtr3 = Shop::CreateShop("3");
   return 0;
 }

@@ -3,22 +3,33 @@
 
 #include <memory>
 #include <string>
+#include <optional>
+#include <map>
 
 struct IShop {
   virtual ~IShop() = default;
 
   virtual std::weak_ptr<IShop>
-  GetShared() = 0;
+  GetWeakPtr() = 0;
+
+  virtual std::optional<double>
+  GetPrice(const std::string &) = 0;
+
+  virtual void
+  Notify(const std::string &, const std::optional<double> &) = 0;
+
+  virtual std::string
+  GetPriceList() = 0;
 };
 
 struct IProduct {
   virtual ~IProduct() = default;
 
   virtual void
-  Attach(IShop *) = 0;
+  Attach(const std::weak_ptr<IShop> &) = 0;
 
   virtual void
-  Detach(IShop *) = 0;
+  Detach(const std::weak_ptr<IShop> &) = 0;
 
   virtual double
   GetPrice() = 0;
@@ -35,17 +46,50 @@ struct IProduct {
 
 struct Shop : public IShop {
 private:
-  std::string name;
   std::weak_ptr<IShop> self;
+  std::map<std::string, double> products;
 
   Shop(const std::string &_name);
 
 public:
-  static std::shared_ptr<Shop>
-  createShop(const std::string &name);
+  const std::string name;
 
-  std::weak_ptr<IShop>
-  GetShared();
+  static std::shared_ptr<Shop>
+  CreateShop(const std::string &name);
+
+  virtual std::weak_ptr<IShop>
+  GetWeakPtr() override;
+
+  virtual std::optional<double>
+  GetPrice(const std::string &) override;
+
+  virtual void
+  Notify(const std::string &, const std::optional<double> &) override;
+
+  virtual std::string
+  GetPriceList() override;
+};
+
+struct Product : IProduct {
+  Product(const std::string &, double);
+
+  virtual void
+  Attach(const std::weak_ptr<IShop> &) override;
+
+  virtual void
+  Detach(const std::weak_ptr<IShop> &) override;
+
+  virtual double
+  GetPrice() override;
+
+  virtual void
+  StartSales() override;
+
+  virtual void
+  StopSales() override;
+
+  virtual void
+  ChangePrice(double) override;
 };
 
 #endif
