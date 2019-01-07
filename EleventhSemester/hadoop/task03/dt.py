@@ -3,7 +3,6 @@ import json
 import pyspark.sql.functions as f
 from pyspark.sql import SparkSession
 import argparse
-from pyspark.ml import feature
 
 class DecisionTreeClassifier:
     def __init__(self, input_columns=None, target_column=None, max_depth=3, min_samples_leaf=1, max_bins=10):
@@ -14,46 +13,52 @@ class DecisionTreeClassifier:
         self.max_bins = max_bins
 
         self.tree = {}
-        
+
     def fit(self, df):
         self.tree['percentiles'] = {}
-        
+
         df = df.cache()
         df_size = df.count()
-        
-        for attr in self.input_columns:
-            percentiles = []
-            
-            sorted_rdd = df.select(attr).rdd.sortBy(lambda x: x[0], True)
-            indexed = sorted_rdd.zipWithIndex().map(lambda x: (x[1], x[0]))
-            
-            for i in range(1, self.max_bins):
-                index = i * df_size // self.max_bins
-                percentiles.append(indexed.lookup(index)[0][0])
-            
-            percentiles = sorted(set(percentiles))
-            bucketizer = feature.Bucketizer(splits=[float('-inf')] + percentiles + [float('inf')],
-                                            inputCol=attr, outputCol='bucket')
-            df = bucketizer.transform(df)
-            df = (df.withColumn(attr, df['bucket'].cast('int'))
-                  .drop('bucket')
-                 )
-            
-            self.tree['percentiles'][attr] = percentiles
-        
+
+        minmax = df.select(
+            *([f.min(attr).alias('min_' + attr) for attr in self.input_columns] +
+              [f.max(attr).alias('max_' + attr) for attr in self.input_columns]
+            )
+        ).first()
+
+        df = df.select(
+            self.target_column,
+            *(((f.col(attr) - minmax['min_' + attr]) / (minmax['max_' + attr] - minmax['min_' + attr]) * self.max_bins).cast('int').alias(attr)
+              for attr in self.input_columns)
+        )
+
+
+        spark = (SparkSession.builder.appName("Solution")
+                 .getOrCreate())
+
+        df = spark.createDataFrame(
+            df.rdd.map(lambda row: [row[0]] + [min(x, self.max_bins - 1) for x in row[1:]]),
+            df.schema
+        ).cache()
+
+        self.tree['percentiles'] = {
+            attr: [minmax['min_' + attr] + i * (minmax['max_' + attr] - minmax['min_' + attr]) / self.max_bins for i in range(self.max_bins)]
+            for attr in self.input_columns
+        }
+
         self.init_node(self.tree, 0, df)
-        
+
         del self.tree['percentiles']
-        
+
         return self
-    
+
     def init_node(self, node, depth, part):
         n = part.count()
         best_gain = float('-inf')
         best_attr = None
         best_cutoff = None
         best_cutoff_index = None
-        
+
         if depth < self.max_depth and n > self.min_samples_leaf:
 
             for attr in self.input_columns:
@@ -84,13 +89,13 @@ class DecisionTreeClassifier:
                     if gain > best_gain:
                         best_gain  = gain
                         best_attr = attr
-                        best_cutoff = self.tree['percentiles'][attr][cutoff[i] - 1]
+                        best_cutoff = self.tree['percentiles'][attr][cutoff[i]]
                         best_cutoff_index = cutoff[i]
-            
+
         if best_attr is not None:
             node['attr'], node['cutoff'] = best_attr, best_cutoff
             node['left'], node['right'] = {}, {}
-            
+
             left_part = part.filter(part[best_attr] < best_cutoff_index)
             self.init_node(node['left'], depth + 1, left_part)
             right_part = part.filter(part[best_attr] >= best_cutoff_index)
@@ -100,15 +105,15 @@ class DecisionTreeClassifier:
 
     def predict_proba(self, df):
         return df.rdd.map(lambda row: predict_node(self.tree, row))
-    
+
     def save(self, filename, spark):
         spark.sparkContext.parallelize((json.dumps(self.tree), )).saveAsTextFile(filename)
         return self
-            
+
     def load(self, filename, spark):
         self.tree = json.loads(spark.sparkContext.textFile(filename).first())
         return self
-    
+
 def predict_node(node, row):
     if 'attr' in node:
         choice = row[node['attr']] >= node['cutoff']
@@ -116,7 +121,7 @@ def predict_node(node, row):
         return predict_node(next_node, row)
     else:
         return (1 - node['weight'], node['weight'])
-    
+
 def parse_list(l):
     return l.split(',')
 
@@ -126,9 +131,9 @@ def ftrain(spark, args):
         train_data[args.target_column].cast('int'),
         *(train_data[col].cast('float') for col in args.input_columns)
     )
-    
-    clf = DecisionTreeClassifier(input_columns=args.input_columns, 
-                                 target_column=args.target_column, 
+
+    clf = DecisionTreeClassifier(input_columns=args.input_columns,
+                                 target_column=args.target_column,
                                  max_depth=args.max_depth,
                                  min_samples_leaf=args.min_samples_leaf,
                                  max_bins=args.max_bins
@@ -142,7 +147,7 @@ def fpredict(spark, args):
     test_data = test_data.select(
         *(test_data[col].cast('float') for col in test_data.columns)
     )
-    
+
     clf = DecisionTreeClassifier().load(args.tree_filename, spark)
     proba = clf.predict_proba(test_data)
     proba.map(lambda x: (','.join(str(c) for c in x) )).saveAsTextFile(args.predict_filename)
@@ -151,7 +156,7 @@ def fpredict(spark, args):
 def main(params=None):
     parser = argparse.ArgumentParser('Correlation calculator')
     subparsers = parser.add_subparsers(help='train or predict')
-    
+
     train = subparsers.add_parser('train')
     train.add_argument('train_data')
     train.add_argument('input_columns', type=parse_list)
@@ -161,18 +166,18 @@ def main(params=None):
     train.add_argument('max_bins', type=int)
     train.add_argument('tree_filename')
     train.set_defaults(func=ftrain)
-    
+
     predict = subparsers.add_parser('predict')
     predict.add_argument('test_data')
     predict.add_argument('tree_filename')
     predict.add_argument('predict_filename')
     predict.set_defaults(func=fpredict)
-    
+
     if params is not None:
         args = parser.parse_args(params.split())
     else:
         args = parser.parse_args()
-    
+
     spark = (SparkSession.builder.appName("Solution")
                 .getOrCreate())
 
