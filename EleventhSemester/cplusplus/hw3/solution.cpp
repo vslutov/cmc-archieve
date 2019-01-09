@@ -5,18 +5,18 @@
 
 template<typename TArg>
 decltype(auto)
-Compose(TArg &&FArg)
+Compose(TArg FArg)
 {
-  return std::forward<TArg>(FArg);
+  return FArg;
 }
 
 template<typename TArg, typename... TArgs>
 decltype(auto)
-Compose(TArg &&f1, TArgs &&... FArgs)
+Compose(TArg f1, TArgs... FArgs)
 {
-  return [&](auto &&x) {
-    return std::forward<decltype(f1)>(f1)(
-      Compose(std::forward<TArgs>(FArgs)...)(
+  return [=](auto &&x) {
+    return f1(
+      Compose((FArgs)...)(
         std::forward<decltype(x)>(x)
       )
     );
