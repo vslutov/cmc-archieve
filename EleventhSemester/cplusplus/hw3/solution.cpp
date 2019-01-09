@@ -14,9 +14,9 @@ template<typename TArg, typename... TArgs>
 decltype(auto)
 Compose(TArg f1, TArgs... FArgs)
 {
-  return [=](auto &&x) {
+  return [f1=f1,FArgs...](auto &&x) {
     return f1(
-      Compose((FArgs)...)(
+      Compose(FArgs...)(
         std::forward<decltype(x)>(x)
       )
     );
