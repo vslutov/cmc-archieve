@@ -110,6 +110,8 @@ def deconvolve(image, kernel, noise_level):
         momentum = - lr * grad_target + 0.8 * momentum
         target += momentum
 
+    target = target[K // 2:K // 2 + image.shape[0], L // 2:L // 2 + image.shape[1]]
+
     return target
 
 
