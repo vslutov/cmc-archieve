@@ -1,0 +1,11 @@
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1476179546
+  State space representation uses minimal constraint systems
+[2K
+Verifying property 1 at line 6
+ -- Throughput: 5984 states/sec, Load: 5 states[K[2K -- Property is satisfied.
+ -- States stored : 106 states
+ -- States explored : 106 states

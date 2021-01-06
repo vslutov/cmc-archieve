@@ -1,0 +1,11 @@
+digraph G {
+2 -> 4 [label="h = 4", color="blue"];
+2 [label="2"];
+4294967297 -> 4 [label="h = 4", color="blue"];
+4294967297 -> 4 [label="h = 4", color="red"];
+4294967297 [label="#"];
+4 -> 2 [label="h = b", color="red"];
+4 -> 4 [label="h = 4", color="blue"];
+4 -> 4 [label="h = 4", color="red"];
+4 [label="4"];
+}

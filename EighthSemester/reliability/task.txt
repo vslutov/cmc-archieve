@@ -1,0 +1,58 @@
+int h;
+void
+f (int a, int b)
+{
+  int x, y;
+  x = 9;
+  y = 2;
+  h = 4;
+  if (h > x - a)
+    {
+      h = x;
+    }
+  if (h > y - x)
+    {
+      x = 8;
+    }
+  if (y > 6)
+    {
+      y = 1;
+    }
+  h = b;
+}
+
+void
+g (int a, int b)
+{
+  int x, y;
+  x = 2;
+  y = 7;
+  h = 4;
+  x = 8;
+  if (x > 7)
+    {
+      x = 4;
+    }
+  else
+    {
+      y = 1;
+    }
+  y = 6;
+  while (x > 5)
+    {
+      if (h > 0)
+        break;
+      if (h > 5)
+        {
+          h = 2;
+        }
+      else
+        {
+          if (h < a + b)
+            {
+              h = 1;
+            }
+          y = 3;
+        }
+    }
+}
