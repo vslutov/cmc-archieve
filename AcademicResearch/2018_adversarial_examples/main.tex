@@ -1,0 +1,525 @@
+% Класс документа с параметрами: кегль шрифта, шрифт с засечками для формул,
+% соотношение сторон слайда
+\documentclass[14pt,mathserif,aspectratio=43,unicode]{beamer}
+%\setbeameroption{show notes} % fpr development
+%\setbeameroption{show only notes} % for materials
+
+%%% Кодировки и шрифты %%%
+\usepackage{cmap}				% Улучшенный поиск русских слов в полученном pdf-файле
+\usepackage[T2A,T1]{fontenc}			% Поддержка русских букв
+\usepackage[utf8]{inputenc}				% Кодировка utf8
+\usepackage[english, russian]{babel}	% Языки: русский, английский
+
+\usepackage{xcolor}
+% Цвет логотипа лаборатории
+\definecolor{lab-blue}{RGB}{30,97,182}
+% Ищется в яндексе по запросу «травяной цвет»
+\definecolor{grass}{RGB}{93,161,48}
+
+% Математические символы
+\usepackage{amsthm,amsfonts,amsmath,amssymb,amscd} % Математические дополнения от AMS
+
+% Перечёркивание текста
+\usepackage{ulem}
+
+% Графики
+\usepackage{pgfplots}
+\pgfplotsset{width=9cm,compat=1.9}
+\usepackage{epstopdf}
+
+%%% Поля и разметка страницы %%%
+\usepackage{lscape}		% Для включения альбомных страниц
+\usepackage{geometry}	% Для последующего задания полей
+
+%%% Оформление абзацев %%%
+\usepackage{indentfirst} % Красная строка
+
+%%% Общее форматирование
+\usepackage[singlelinecheck=off,center]{caption}	% Многострочные подписи
+\usepackage{soul}									% Поддержка переносоустойчивых подчёркиваний и зачёркиваний
+ 
+%%% Изображения %%%
+\usepackage{graphicx} % Подключаем пакет работы с графикой
+\graphicspath{{images/}} % Пути к изображениям
+\usepackage{xmpmulti}
+
+%%% Заголовки и футеры %%%
+\usepackage{fancyhdr}
+
+%%% Код
+\usepackage{listings}
+\lstset{language=Python,
+        keywordstyle=\color{grass}\ttfamily,
+        stringstyle=\color{red}\ttfamily,
+        commentstyle=\color{green}\ttfamily,
+        morecomment=[l][\color{magenta}]{\#},
+        numbers=left, 
+        numberstyle=\color{lightgray}\tiny, 
+        numbersep=5pt,
+        basicstyle=\footnotesize
+}
+
+%%% Filter warnings
+\usepackage{silence,lmodern}
+\WarningFilter{biblatex}{Patching footnotes failed}
+
+%%% Библиография
+\usepackage{hyperref}
+\usepackage{csquotes}
+\usepackage[backend=biber,
+            style=gost-footnote-min,
+            sorting=none,
+            hyperref=true,
+            url=false]{biblatex}
+\addbibresource{bibliography.bib}
+%\AtEveryCitekey{\iffootnote{\clearfield{url}}{}}
+
+%%% Кодировки и шрифты %%%
+\renewcommand{\rmdefault}{ftm} % Включаем Times New Roman
+
+%%% Выравнивание и переносы %%%
+\sloppy					% Избавляемся от переполнений
+\clubpenalty=10000		% Запрещаем разрыв страницы после первой строки абзаца
+\widowpenalty=10000		% Запрещаем разрыв страницы после последней строки абзаца
+
+% Основной цвета beamer'а (по умолчанию — синий)
+\setbeamercolor{structure}{fg=black}
+
+% Нумерация слайдов
+\setbeamertemplate{footline}{%
+\raisebox{7pt}{\makebox[\paperwidth]{%
+\hfill\makebox[10pt]{\scriptsize\textcolor{gray}{\insertframenumber~~~~}}}}}
+
+% Начинать нумерацию слайдов не с титульного слайда
+% \let\otp\titlepage
+% \renewcommand{\titlepage}{\otp\addtocounter{framenumber}{-1}}
+
+% Сноска без номера
+%\newcommand\articlenote[1]{%
+%  \begingroup%
+%  \renewcommand\thefootnote{}\footnote{#1}%
+%  \addtocounter{footnote}{-1}%
+%  \endgroup%
+%}
+
+% Убрать навигацию beamer'а по умолчанию
+\beamertemplatenavigationsymbolsempty
+
+% Сноска без номера
+\newcommand\articlenote[1]{%
+  \begingroup%
+  \renewcommand\thefootnote{}\footnote{#1}%
+  \addtocounter{footnote}{-1}%
+  \endgroup%
+}
+ 
+% Параметры для создания титульной страницы
+\title{Adversarial examples}
+\author{Лютов Владимир Сергеевич}
+
+\institute{
+    \small{ВМК МГУ}
+
+    \smallskip
+
+    \includegraphics[scale=0.6]{lab_logo.eps}
+}
+
+% Время
+\date{\small{25 апреля 2018 г.}}
+
+\logo{\includegraphics[height=1cm]{lab_logo.eps}\vspace{220pt}}
+
+\begin{document}
+
+%-------------------------------------------------------------------------------
+\begin{frame}[plain]
+    \titlepage
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Outline}
+    \tableofcontents
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\section{Adversarial examples}
+
+\begin{frame}{Adversarial examples}
+
+    \begin{itemize}
+        \item $X^{adv} \gets X + \varepsilon sign\big(\nabla_X J(X, y_{true})\big)$
+        \item $X^{adv} \gets X - \varepsilon sign\big(\nabla_X J(X, y_{target})\big)$
+        \item $X_0^{adv} \gets X$ \\
+        $X_{N+1}^{adv} \gets X_n^{adv} + \alpha sign\big(\nabla_X J(X_N^{adv}, y_{true})\big)$
+        
+        \item $X_0^{adv} \gets X$ \\
+        $X_{N+1}^{adv} \gets X_n^{adv} - \alpha sign\big(\nabla_X J(X_N^{adv}, y_{LL})\big)$
+    \end{itemize}
+    
+    \articlenote{\fullcite{kurakin2016adversarial}}
+    
+\end{frame}
+
+\note[itemize]{
+    \item Adversarial атаки бывают одношаговые и многошаговые
+    \item А еще нацеленные и ненацеленные
+}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Adversarial examples}
+
+    \begin{center}
+        \includegraphics[clip, page=9, trim=3.9cm 17cm 3.9cm 6.5cm,width=\textwidth]{image-8.pdf}
+    \end{center}
+    
+\end{frame}
+
+\note[itemize]{
+    \item Adversarial примеры переносятся на другие сети: как между весами, так и между архитектурами
+    \item Одношаговые атаки лучше переносятся
+    \item Adversarial training не увеличивает точность
+    \item Но увеличивает устойчивость к одношаговым атакам и переносу
+    \item От многошаговых алгоритмов не защищает adversarial training
+}
+
+%-------------------------------------------------------------------------------
+\section{One pixel attack}
+
+\begin{frame}{One pixel attack}
+    
+    \begin{center}
+        \includegraphics[height=0.5\textheight]{image-2.png}
+    \end{center}
+    
+    Confidence in true class bird is 0.00018887517
+    
+    Prior confidence was 0.7066183
+    
+    \articlenote{\fullcite{su2017one}}
+    
+\end{frame}
+
+\note[itemize]{
+    \item Полупрозрачный ящик: знаем вероятности классов
+    \item $f = p_{y_i}$ или $f = -p_{target_i}$
+    \item Дифференциальная эволюция : геном -- какой пиксель и на что заменяем
+}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Differential evolution}
+    
+    \begin{center}
+        \multiinclude[format=png,graphics={height=0.6\textheight}]{image-1}
+    \end{center}
+    
+    \articlenote{\fullcite{storn1997differential}}
+    
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Differential evolution}
+    
+    \lstinputlisting{de.py}
+    
+\end{frame}
+
+\note[itemize]{
+    \item Без ограничения общности расматриваем функцию определенную на единичном кубе
+    \item Выбираем особей для скрещивания, исключая j-ую
+    \item Выставляем по меньшей мере 1 бит cp в единицу -- чтобы не гонять процессор просто так
+}
+
+\section{Parseval networks}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Parseval networks}
+
+    \begin{itemize}
+        \item Lipschitz continuous: $\exists L \geq 0: \rho_Y(f(x),\;f(y))\leqslant L\cdot\rho_X(x,\;y)$ 
+        \pause
+        \item For ReLU\pause : $L = 1$
+        \item For fully-connected layer\pause : $L = \lambda_{\max}$
+        \pause
+        \item Regularization: $L_\beta = \beta \|W^T W - I\|_2$
+    \end{itemize}
+    
+    \articlenote{\fullcite{cisse2017parseval}}
+    
+\end{frame}
+
+\note[itemize]{
+    \item Свертка - тоже домножение на матрицу
+    \item Нельзя оптимизировать градиентным спуском $\lambda_{\max}$
+    \item Вместо этого вводим регуляризатор
+    \item Если матрица квадратная, то она называется ортонормированной. Если прямоугольная -- матрицей Парсеваля
+    \item Для residual connection придумана хитрая нормализация
+}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Parseval networks}
+
+    \begin{center}
+        \includegraphics[clip, page=7, trim=1.8cm 21cm 10.9cm 2.3cm,height=0.4\textheight]{image-3.pdf}
+        
+        \includegraphics[clip, page=7, trim=10.7cm 21cm 2cm 2.3cm,height=0.4\textheight]{image-3.pdf}
+    \end{center}
+    
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{WGAN}
+
+    \begin{itemize}
+    
+        \item \footfullcite{arjovsky2017wasserstein}~Clip weights
+        \pause
+        \item \footfullcite{gulrajani2017improved}~$L_\lambda = \lambda(\|\nabla_{\hat{x}}D_\omega(\hat{x})\|_2 - 1)^2$
+    \end{itemize}
+    
+    \begin{center}
+        \includegraphics[clip, page=3, trim=10cm 13.5cm 4cm 12.5cm,height=0.42\textheight]{image-4.pdf}
+    \end{center}
+    
+\end{frame}
+
+\note[itemize]{
+    \item $x \in X_{train}$
+    \item $z \sim p(z)$
+    \item $\tilde{x} \gets G_\theta(z)$
+    \item $\varepsilon \sim U[0, 1]$
+    \item $\hat{x} \gets \varepsilon x + (1 - \varepsilon) \tilde{x}$
+}
+
+%-------------------------------------------------------------------------------
+
+\section{Reasons}
+
+\begin{frame}{Hypothetical reasons}
+
+    \begin{itemize}
+        \item Neural network classifiers are too linear in
+various regions of the input space
+        \item Adversarial examples are off the data manifold
+        \item Large singular values
+        \item Naturally occurring result of the high dimensional geometry of the data manifold
+    \end{itemize}
+    
+    \articlenote{\fullcite{goodfellow2014explaining}}
+
+\end{frame}
+
+\note[itemize]{
+    \item They are a result of models being too linear, rather than too nonlinear.
+    \item The generalization of adversarial examples across different models can be explained as a result of adversarial perturbations being highly aligned with the weight vectors of a model, and different models learning similar functions when trained to perform the same task.
+}
+
+\note[itemize]{
+    \item The direction of perturbation, rather than the specific point in space, matters most. Space is not full of pockets of adversarial examples that finely tile the reals like the rational numbers.
+    \item Because it is the direction that matters most, adversarial perturbations generalize across different clean examples.
+    \item We have demonstrated that adversarial training can result in regularization;  even further regularization than dropout.
+}
+
+\note[itemize]{
+    \item We have run control experiments that failed to reproduce this effect with simpler but less efficient regularizers including L1 weight decay and adding noise.
+    \item Models that are easy to optimize are easy to perturb.
+    \item Linear models lack the capacity to resist adversarial perturbation;  only structures with a hidden layer (where the universal approximator theorem applies) should be trained to resist adversarial perturbation.
+    \item RBF networks are resistant to adversarial examples.
+    \item Models trained to model the input distribution are not resistant to adversarial examples.
+    \item Ensembles are not resistant to adversarial examples.
+}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Adversarial Spheres}
+
+    \begin{center}
+        \includegraphics[clip, page=4, trim=4cm 19.5cm 4cm 4cm,width=\textwidth]{image-6.pdf}
+    \end{center}  
+
+    \articlenote{\fullcite{gilmer2018adversarial}}
+
+\end{frame}
+
+\note[itemize]{
+    \item 500-мерное пространство
+    \item 2 класса: точки на расстоянии 1 и на расстоянии 1.3 от начала координат
+    \item Классификатор: два скрытых полносвязных слоя с активацией ReLU и 1000 скрытых нейронов.
+    \item The volume of error region is exceedingly small due to the high dimensional space
+    \item Но расстояние до него очень маленькое
+    \item Длина adversarial вектора $O(1/\sqrt{d})$
+}
+
+%-------------------------------------------------------------------------------
+
+\section{Universal adversarial perturbations}
+
+\begin{frame}{Universal adversarial perturbations}
+
+    \begin{center}
+        \includegraphics[clip, page=1, trim=10.5cm 7cm 2cm 8cm,height=0.6\textheight]{image-5.pdf}
+        \includegraphics[clip, page=3, trim=10.5cm 16.5cm 2cm 3.2cm,height=0.6\textheight]{image-5.pdf}
+    \end{center}
+    
+    \articlenote{\fullcite{moosavi2017universal}}
+    
+\end{frame}
+
+\note[itemize]{
+    \item Existence of a
+\underline{universal} (image-agnostic for given a state-of-the-art deep neural network classifier) and \underline{very small} (length constraint) perturbation vector that causes natural images to be misclassified with high probability. Futhermore, such vectors generalize very well \underline{across
+neural networks}.
+    \item The algorithm seeks a universal perturbation for a set of training points, and proceeds by aggregating atomic perturbation vectors that send successive datapoints to the decision boundary of the classifier.
+}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Universal adversarial perturbations}
+
+    \begin{center}
+        \includegraphics[clip, page=5, trim=4.2cm 9cm 4.7cm 9.5cm,height=0.8\textheight]{image-5.pdf}
+    \end{center}
+    
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Universal adversarial perturbations}
+
+    \begin{center}
+        \includegraphics[clip, page=4, trim=2.4cm 23cm 3cm 2.5cm,width=\textwidth]{image-5.pdf}
+    
+        \includegraphics[clip, page=6, trim=4cm 17cm 4.5cm 7.5cm,width=\textwidth]{image-5.pdf}
+    \end{center}  
+
+\end{frame}
+
+\note[itemize]{
+    \item Fooling ratios on the set X, and the validation set.
+    \item Generalizability of the universal perturbations across different networks. The percentages indicate the fooling rates. The rows indicate the architecture for which the universal perturbations is computed, and the columns indicate the architecture for which the fooling rate is reported.
+}
+
+%-------------------------------------------------------------------------------
+\section{Adversarial patch}
+
+\begin{frame}{Face detection/recognition}
+    
+    \begin{center}
+        \includegraphics[clip, page=9, trim=3.8cm 20.2cm 3.8cm 1.8cm,width=\textwidth]{image-10.pdf}
+    \end{center}
+    
+    \articlenote{\fullcite{sharif2016accessorize}}
+    
+\end{frame}
+
+\note[itemize]{
+    \item Прозрачный ящик
+    \item Текстура очков
+    \item Ошибка -- loss, который мы увеличиваем + регуляризаторы
+    \item Total Variation регуляризатор, чтобы можно было напечатать
+    \item Штраф за выход за границы печатаемового цветового пространства
+    \item Обобщение на непрозрачный ящик: использование статистического евристического алгоритма, не требующего подсчет градиентов, а использующего суррогатную функцию
+    \item Взломали Face++ на цифровых фото
+}
+
+%-------------------------------------------------------------------------------
+
+\begin{frame}{Physical-World Attacks}
+    
+    \begin{center}
+        \includegraphics[clip, page=10, trim=2cm 11.6cm 1.5cm 2.7cm,height=0.7\textheight]{image-9.pdf}
+    \end{center}  
+    
+    \articlenote{\fullcite{evtimov2017robust}}
+    
+\end{frame}
+
+%-------------------------------------------------------------------------------
+
+\begin{frame}{Synthesizing robust adversarial examples}
+    
+    \[
+    \begin{matrix}
+        \hat{x} = \arg \min_{x'} \mathop{\mathbb{E}}_{t \sim T} \Big[ & -\log P\big(y|t(x)\big) + \\
+            & \lambda\|LAB\big(t(x) - t(x')\big)\|_2^2\Big]
+    \end{matrix}
+    \]
+    
+    \begin{center}
+        \url{https://youtu.be/YXy6oX1iNoA}
+    \end{center}
+    
+    \articlenote{\fullcite{athalye2017synthesizing}}
+    
+\end{frame}
+
+\note[itemize]{
+    \item We consider 5 complex 3D models, choose 20 random target classes per model, and use EOT to synthesize adversarial textures for the models 
+    \item With minimal parameter search (four constant, pre-chosen $\lambda$ values were tested across each model, target pair).
+    \item For each of the 100 adversarial examples, we sample 100 random transformations from the distribution.
+}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Adversarial patch}
+
+    \begin{center}
+        \includegraphics[clip, page=3, trim=4cm 21.5cm 4cm 3cm,width=\textwidth]{image-7.pdf}
+    
+        $$\hat{p} = \arg \max_p \mathop{\mathbb{E}}_{x \sim X, t \sim T, l \sim L} \log Pr\big(\hat{y}|A(p, x, l, t)\big)$$
+        
+    \end{center}  
+    
+    \articlenote{\fullcite{brown2017adversarial}}
+
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Adversarial patch}
+
+    \begin{center}
+        \includegraphics[clip, page=4, trim=4.2cm 20.5cm 4.8cm 2.5cm,width=\textwidth]{image-7.pdf}
+    \end{center}  
+    
+    \url{https://youtu.be/i1sp4X57TL4}
+
+\end{frame}
+
+\note[itemize]{
+    \item The white box ensemble attack jointly trains a single patch across five ImageNet models: inceptionv3, resnet50, xception, VGG16, and VGG19. We then evaluate the attack by averaging the win rate across all five models. 
+    \item The white box single model attack does the same but only trains and evaluates on a single model.
+    \item The blackbox attack jointly trains a single patch across four of the ImageNet models, and then evaluates the blackbox attack on a fifth model.
+    \item Each point in the plot is computed by applying the patch to 400 randomly chosen test images at random locations in these images.
+}
+
+\note[itemize]{
+    \item Не работает с напечатанными кусочками, если они занимеют маленькую часть кадра
+    \item Яркий элемент, который привлекает внимание нейронки
+}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Conclusion}
+
+    \begin{itemize}
+    
+        \item Adversarial примеры можно построить для любой архитектуры
+        \item Они переносимы между весами и архитектурами
+        \item Можно построить возмущения, переносимые между картинками
+        \item Можно создать патч, привлекающий внимание сети
+
+    \end{itemize}
+    
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Дописать}
+
+    \begin{itemize}
+    
+    
+        \item Adversarial Examples that Fool both Human and Computer Vision: https://arxiv.org/pdf/1802.08195.pdf
+        \item Synthesizing Robust Adversarial Examples: https://arxiv.org/pdf/1707.07397.pdf
+
+    \end{itemize}
+    
+\end{frame}
+
+
+
+\end{document}

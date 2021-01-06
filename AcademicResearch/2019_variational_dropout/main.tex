@@ -1,0 +1,482 @@
+% Класс документа с параметрами: кегль шрифта, шрифт с засечками для формул,
+% соотношение сторон слайда
+\documentclass[14pt,mathserif,aspectratio=43,unicode]{beamer}
+%\setbeameroption{show notes} % for development
+%\setbeameroption{show only notes} % for materials
+
+%%% Кодировки и шрифты %%%
+\usepackage{cmap}				% Улучшенный поиск русских слов в полученном pdf-файле
+\usepackage[T2A,T1]{fontenc}			% Поддержка русских букв
+\usepackage[utf8]{inputenc}				% Кодировка utf8
+\usepackage[english, russian]{babel}	% Языки: русский, английский
+
+\usepackage{xcolor}
+% Цвет логотипа лаборатории
+\definecolor{lab-blue}{RGB}{30,97,182}
+% Ищется в яндексе по запросу «травяной цвет»
+\definecolor{grass}{RGB}{93,161,48}
+
+% Математические символы
+\usepackage{amsthm,amsfonts,amsmath,amssymb,amscd} % Математические дополнения от AMS
+
+% Перечёркивание текста
+\usepackage{ulem}
+
+% Графики
+\usepackage{pgfplots}
+\pgfplotsset{width=9cm,compat=1.9}
+\usepackage{epstopdf}
+
+%%% Поля и разметка страницы %%%
+\usepackage{lscape}		% Для включения альбомных страниц
+\usepackage{geometry}	% Для последующего задания полей
+
+%%% Оформление абзацев %%%
+\usepackage{indentfirst} % Красная строка
+
+%%% Общее форматирование
+\usepackage[singlelinecheck=off,center]{caption}	% Многострочные подписи
+\usepackage{soul}									% Поддержка переносоустойчивых подчёркиваний и зачёркиваний
+ 
+%%% Изображения %%%
+\usepackage{graphicx} % Подключаем пакет работы с графикой
+\graphicspath{{images/}} % Пути к изображениям
+\usepackage{xmpmulti}
+
+%%% Заголовки и футеры %%%
+\usepackage{fancyhdr}
+
+%%% Код
+\usepackage{listings}
+\lstset{language=Python,
+        keywordstyle=\color{grass}\ttfamily,
+        stringstyle=\color{red}\ttfamily,
+        commentstyle=\color{green}\ttfamily,
+        morecomment=[l][\color{magenta}]{\#},
+        numbers=left, 
+        numberstyle=\color{lightgray}\tiny, 
+        numbersep=5pt,
+        basicstyle=\footnotesize
+}
+
+%%% Filter warnings
+\usepackage{silence,lmodern}
+\WarningFilter{biblatex}{Patching footnotes failed}
+
+%%% Библиография
+\usepackage{hyperref}
+\usepackage{csquotes}
+\usepackage[backend=biber,
+            style=gost-footnote-min,
+            sorting=none,
+            hyperref=true,
+            url=false]{biblatex}
+\addbibresource{bibliography.bib}
+%\AtEveryCitekey{\iffootnote{\clearfield{url}}{}}
+
+%%% Кодировки и шрифты %%%
+\renewcommand{\rmdefault}{ftm} % Включаем Times New Roman
+
+%%% Выравнивание и переносы %%%
+\sloppy					% Избавляемся от переполнений
+\clubpenalty=10000		% Запрещаем разрыв страницы после первой строки абзаца
+\widowpenalty=10000		% Запрещаем разрыв страницы после последней строки абзаца
+
+% Основной цвета beamer'а (по умолчанию — синий)
+\setbeamercolor{structure}{fg=black}
+
+% Нумерация слайдов
+\setbeamertemplate{footline}{%
+\raisebox{7pt}{\makebox[\paperwidth]{%
+\hfill\makebox[10pt]{\scriptsize\textcolor{gray}{\insertframenumber~~~~}}}}}
+
+% Начинать нумерацию слайдов не с титульного слайда
+% \let\otp\titlepage
+% \renewcommand{\titlepage}{\otp\addtocounter{framenumber}{-1}}
+
+% Сноска без номера
+%\newcommand\articlenote[1]{%
+%  \begingroup%
+%  \renewcommand\thefootnote{}\footnote{#1}%
+%  \addtocounter{footnote}{-1}%
+%  \endgroup%
+%}
+
+% Убрать навигацию beamer'а по умолчанию
+\beamertemplatenavigationsymbolsempty
+
+% Сноска без номера
+\newcommand\articlenote[1]{%
+  \begingroup%
+  \renewcommand\thefootnote{}\footnote{#1}%
+  \addtocounter{footnote}{-1}%
+  \endgroup%
+}
+ 
+% Параметры для создания титульной страницы
+\title{Bayesian neural network and sparse variational dropout}
+\author{Лютов Владимир Сергеевич}
+
+\institute{
+    \small{ВМК МГУ}
+
+    \smallskip
+
+    \includegraphics[scale=0.6]{lab_logo.eps}
+}
+
+% Время
+\date{\small{26 сентября 2018}}
+
+\logo{\includegraphics[height=1cm]{lab_logo.eps}\vspace{220pt}}
+
+\newcommand{\w}{\mathbf{w}}
+\newcommand{\T}{\mathbf{t}}
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\pHi}{\mathbf{\phi}}
+\newcommand{\Eps}{\mathbf{\epsilon}}
+\newcommand{\y}{\mathbf{y}}
+
+\begin{document}
+
+
+\begin{frame}[plain]
+    \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+    \tableofcontents
+    
+    \articlenote{\url{http://deepbayes.ru/}}
+\end{frame}
+
+\note[itemize]{
+    \item Idea: sparse variational dropout. Long story: bayesians nn
+    \item Not full overview
+    \item Conspect (based on lectures): key ideas
+    \item Math: medium level. Mathan II, Mathstat
+    \item Question about math: I may mistake, DeepBayes participants in this class
+    \item Skip hardcore math and small important steps: local reparametrization trick
+}
+
+\section{Regularization}
+
+\begin{frame}{Regularization}
+
+    \begin{itemize}
+        \item Norm-based (L2, L1)
+        \item Input noise: augmentation
+        \item Weight noise: Dropout, Gaussian weight noise
+        \item Gradient noise
+    \end{itemize}
+    
+\end{frame}
+
+\section{Bayesian neural networks}
+
+
+\begin{frame}{Math}
+    
+    $$ P(A | B) = \frac{P(B | A) \, P(A)}{P(B)} $$
+    
+    $$ KL(P \| Q) = \int p(x)\, \log\left(\frac{p(x)}{q(x)}\right)\, dx $$
+    
+\end{frame}
+
+\note[itemize]{
+    \item Bayes theorem
+    \item $P \sim Q \iff KL = 0$
+    \item $KL \geq 0$
+}
+
+\begin{frame}{Bayes inference}
+
+    \begin{itemize}
+        \item $\x$ -- a data point;
+        \item $\theta$ -- parameter of data point's distribution; 
+        \item $\alpha$ -- distribution hyperparameter;
+        \item $X$ -- the sample a set of $n$ data points;
+        \item $\tilde{x}$ -- a new data point.
+        \item Prior distribution: $p(\theta \mid \alpha)$
+        \item Sampling distribution: $L(\theta|x) = p(x|\theta)$
+        \item Marginal likelihood: $p(\mathbf{X} \mid \alpha) = \int p(\mathbf{X} \mid \theta) p(\theta \mid \alpha) \operatorname{d}\!\theta$
+        \item Posterior distribution: $p(\theta \mid \mathbf{X},\alpha) = \frac{p(\mathbf{X} \mid \theta) p(\theta \mid \alpha)}{p(\mathbf{X} \mid \alpha)} \propto p(\mathbf{X} \mid \theta) p(\theta \mid \alpha)$
+    \end{itemize}
+    
+\end{frame}
+
+
+\begin{frame}{Variational autoencoder}
+
+    \begin{center}
+        \includegraphics[height=0.3\textheight]{autoencoder.png}
+        
+        \includegraphics[height=0.3\textheight]{vae.jpg}
+    \end{center}
+    
+    \articlenote{\fullcite{2013arXiv1312.6114K}}
+
+\end{frame}
+
+\note[itemize]{
+    \item $\mu, \sigma$ -- latent variables
+}
+
+\begin{frame}{Bayesian discriminative model}
+
+    \begin{itemize}
+        \item Ensembling
+        \item Uncertainty estimation
+        \item Regularization
+        \item On-line learning
+    \end{itemize}
+    
+\end{frame}
+
+
+\begin{frame}{Bayesian neural networks}
+
+    \begin{itemize}
+        \item Notation: $X$ -- train features, $\T$ -- train labels, $\w$ -- weights
+        \item Likelihood: $ p(\T | X, \w) = \prod_{i = 1}^N p(t_i | \mathbf{x}_i,  \w) $ \pause
+        
+        \item Prior: $p(\w)$ \pause
+        
+        \item Posterior: 
+        $$ p(\w | X, \T) = \frac{p(\T|X,\w)p(\w)}{\int p(\T|X, \w) p(\w) d \w} = ? $$
+    \end{itemize}
+
+\end{frame}
+
+\note[itemize]{
+    \item No local latent variables: all weights from distribution
+    \item Much higher dimensions
+}
+
+
+\begin{frame}{Ensembling}
+
+    $\x^*$ -- test example, $t^*$ -- predicted label
+
+    $$ \w \sim p(\w|X, \T) $$
+    
+    \pause
+    
+    $$ \mathbb{E}_{\w} p(t^*|\x^*,\w) \approx 
+        \frac{1}{K} \sum_{k=1}^K p(t^*|x^*,\w^k); w^k \sim p(\w|X, \T) $$
+
+\end{frame}
+
+\note[itemize]{
+    \item INTERACTIVE!!!
+    \item Higher accuracy
+    \item More robust
+    \item Expensive
+    \item Student network: train on teacher soft-max
+}
+
+\begin{frame}{Uncertainty estimation}
+
+    \begin{center}
+        \includegraphics[width=\textwidth,page=2,trim=50 500 50 65,clip]{uncertainty.pdf}
+    \end{center}
+
+     \articlenote{\fullcite{louizos2017multiplicative}}
+
+\end{frame}
+
+\begin{frame}{On-line learning}
+
+    $$ D = D_1 \cup D_2 \cup \dots \cup D_M $$
+    
+    \pause
+    
+    $$ p(\w | D_1) = \frac{{\color{lab-blue}p(D_1|\w)p(\w)}}{\int p(D_1|\w)p(\w)d\w} $$
+    
+    \pause
+
+    \begin{eqnarray*}
+        p(\w | D_1, D_2) 
+        & = & 
+        \frac{p(D_2|\w){\color{lab-blue}p(D_1|\w)p(\w)}}{\int p(D_2|\w){\color{lab-blue}p(D_1|\w)p(\w)}d\w}
+        \pause
+        \\  
+        & = &
+        \frac{p(D_2|\w){\color{lab-blue}p(\w|D_1)}}{\int p(D_2|\w){\color{lab-blue}p(\w|D_1)}d\w}
+    \end{eqnarray*}
+
+\end{frame}
+
+\note[itemize]{
+    \item INTERACTIVE!!!
+}
+
+\begin{frame}{Variational inference}
+
+    $$ p(\w | X, \T) = \frac{p(\T|X,\w)p(\w)}{\int p(\T|X, \w) p(\w) d \w} = ? $$
+    
+    \pause
+    
+    $$ q(\w|\pHi) \approx p(\w|X, \T) $$
+    
+    $$ KL\big(q(\w|\pHi) \| p(\w|X, \T)\big) \rightarrow \min_{\pHi} $$
+    
+    \pause
+
+    \begin{eqnarray*}
+        L(\pHi) 
+        & = & 
+        \mathbb{E}_{q(\w|\pHi)} \log p(\T|X,\w) - KL(q(w|\pHi)\|p(\w))
+        \\  
+        & \rightarrow &
+        \max_{\pHi}
+    \end{eqnarray*}
+
+\end{frame}
+
+\begin{frame}{Reparametrization trick}
+
+    $$ \w \sim q(\w|\pHi) \iff w = g(\Eps, \pHi); \Eps \sim p(\Eps) $$
+    
+    \pause
+    
+    $$ L(\pHi) = \mathbb{E}_{p(\Eps)} \log p\big(\T|X,\w=g(\Eps, \pHi)\big) - KL(q\|p) \rightarrow \max_{\pHi} $$
+    
+    Mini-batch:
+    
+    \begin{eqnarray*}
+        \hat{L}(\pHi)
+        & = & 
+        \sum_i \log p\big(\T_{m_i}|\x_{m_i},\w=g(\Eps, \pHi)\big) - KL(q\|p);
+        \\  
+        & &
+        \Eps \sim p(\Eps)
+    \end{eqnarray*}
+
+\end{frame}
+
+\note[itemize]{
+    \item Very similar to loss function
+    \item To fix correlation: local reparametrization trick
+}
+
+\begin{frame}{Dropout}
+
+    \begin{center}
+        \includegraphics[width=\textwidth]{dropout.png}
+    \end{center}
+    
+    \articlenote{\fullcite{srivastava2014dropout}}
+
+\end{frame}
+
+\begin{frame}{Dropout}
+
+    $$ L(\pHi) = \mathbb{E}_{p(\Eps)} \log p\big(\T|X,\w=g(\Eps, \pHi)\big) - KL(q\|p) \rightarrow \max_{\pHi} $$
+    
+    \pause
+     
+    $$ \w = \pHi \cdot diag(\Eps); \Eps \sim Bernoulli(p) $$
+    
+    \pause
+    
+    $$ p(\w) \sim N(0, \sigma) $$
+    
+    \pause
+    
+    $$ L(\pHi) = \mathbb{E}_{p(\Eps)} \log p\big(\T|X,\w=\pHi \cdot diag(\Eps)\big) - \lambda\|\pHi\|_2^2 \rightarrow \max_{\pHi} $$
+
+    \articlenote{\fullcite{gal2016dropout}}
+
+\end{frame}
+
+\note[itemize]{
+    \item INTERACTIVE!!!
+    \item INTERACTIVE!!!
+}
+
+\section{Variational dropout}
+
+\begin{frame}{Gaussian dropout}
+
+    \begin{center}
+        \includegraphics[width=\textwidth]{gaussian-dropout.pdf}
+    \end{center}
+
+    $$ Output = ReLU\Big(Input \times \big(\hat{W} \odot N(1, \alpha)\big)\Big) $$
+    
+    \pause
+    
+    $$ Output = ReLU(Input \times W)$$
+    $$ W \sim \hat{W} \odot N(1, \alpha) = N(\hat{W}, \alpha \odot \hat{W}^2) $$
+
+\end{frame}
+
+\note[itemize]{
+    \item Doesn't change mean value
+    \item Add multiplicative noise
+}
+
+\begin{frame}{Variational dropout}
+    
+    $ \mathbb{E}_{p(W | \pHi)} \log p(\T|X,\w) - KL(q(W|\pHi)\|p(W)) \rightarrow \max_{\pHi} $
+    
+    \begin{itemize}
+        \item $ w_{ij} = \hat{w}_{ij} (1 + \sqrt{\alpha_{ij}} \Eps_{ij}) $
+        \item $\Eps_{ij} \sim N(0, 1)$
+        \item $q(w_{ij}|\phi_{ij})=N(w_{ij}|\hat{w}_{ij},\alpha_{ij}\hat{w}_{ij}^2)$
+        \item $p(w_{ij}) \propto \frac{1}{|w_{ij}|} $
+    
+        \pause
+    
+        \item $-KL(q\|p) = 0.5\log \alpha_{ij}-\mathbb{E}_{\Eps \sim N(1, \alpha_{ij})}\log|\Eps|+C$
+    \end{itemize}
+
+\end{frame}
+
+\note[itemize]{
+    \item KL diversion doesn't depend on $w_{ij}$
+    \item Local reparametrization trick
+}
+
+\begin{frame}{Variance reduction}
+    
+    \begin{itemize}
+        \item $\frac{\partial\mathcal{L}}{\partial \hat{w}_{ij}}=\frac{\partial\mathcal{L}}{\partial w_{ij}}\cdot\frac{\partial \w_{ij}}{\partial \hat{w}_{ij}}$
+        \item $w_{ij}=\hat{w}_{ij}(1+\sqrt{\alpha_{ij}}\epsilon_{ij})$
+        \item $\frac{\partial w_{ij}}{\partial \hat{w}_{ij}}=1+\sqrt{\alpha_{ij}}\epsilon_{ij}$
+        \item Solution: 0 < $\alpha$ < 1
+        \pause
+        \item Spar:se solu $w_{itionj} = \hat{w}_{ij} + \sigma_{ij}\epsilon_{ij}$; $\frac{\partial w_{ij}}{\partial \hat{w}_{ij}}=1$
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Sparse}
+    \begin{center}
+        \includegraphics[height=0.25\textheight]{sparse_fc.png}
+        
+        \includegraphics[height=0.45\textheight]{parameter_size.png}
+    \end{center}
+    
+    \articlenote{\url{https://github.com/bayesgroup/deepbayes-2018}}
+\end{frame}
+
+\begin{frame}{Conclusion}
+    \begin{itemize}
+        \item Bayes inference may be applied to neural networks.
+        \item Sparse variational dropout can decrease non-zero nn parameters.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Why do we need large alphas?}
+    \begin{center}
+        \includegraphics[height=0.5\textheight]{sparse.png}
+    \end{center}
+    
+    \begin{itemize}
+        \item $\alpha_{ij}\ (\alpha_{ij}\to+\infty)$; $w_{ij}\to0$; $q(w_{ij})\to\mathcal{N}(\hat{w}_{ij}\,|\,0, 0)$
+        \item Equivalent binary dropout: $p_{ij}=\frac{\alpha_{ij}}{1+\alpha_{ij}}\to1$
+    \end{itemize}
+\end{frame}
+
+\end{document}

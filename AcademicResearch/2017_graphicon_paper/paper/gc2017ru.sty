@@ -1,0 +1,138 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% GraphiCon'2017 LaTeX package %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\NeedsTeXFormat{LaTeX2e}
+
+\ProvidesPackage{gc2017ru}
+
+%% Logos :)
+\usepackage{hologo}
+
+%% Unicode and Russian text
+\usepackage{xunicode}
+\usepackage{polyglossia}
+\setmainlanguage{russian}
+
+%% Margins
+\usepackage[left=1.9cm, right=1.9cm, top=2.44cm, bottom=2.6cm]{geometry}
+\widowpenalty10000
+\clubpenalty10000
+
+%% Font specifying
+\usepackage{fontspec}
+
+%% Math
+\usepackage{amssymb}
+\usepackage{amsmath}
+\AtBeginDocument
+{
+  \addtolength{\abovedisplayskip}{-4ex}
+  \addtolength{\abovedisplayshortskip}{-2ex}
+  \addtolength{\belowdisplayskip}{-1ex}
+  \addtolength{\belowdisplayshortskip}{-1ex}
+}
+\newenvironment{expl}
+{
+  \newcommand{\where}{\setlength\parindent{0em}\par}
+  \renewcommand{\item}{\setlength\parindent{1.5em}\par}
+}
+
+%% Basic text
+\newfontfamily\russianfont[Ligatures=TeX]{times new roman.ttf}
+\newfontfamily{\cyrillicfonttt}[Scale=0.9]{cour.ttf}
+\setmonofont{cour.ttf}
+\newfontfamily\normalfont[]{times new roman.ttf}
+
+%% Two columns
+\usepackage{multicol}
+\setlength\columnsep{0.84cm}
+
+%% Indentation
+\usepackage{indentfirst}
+\setlength\parindent{0.5cm}
+\setlength{\emergencystretch}{3em}
+\let\oldcenter\center
+\let\oldendcenter\endcenter
+\renewenvironment{center}{\setlength\topsep{0pt}\oldcenter}{\oldendcenter}
+
+%% Title, authors, affiliation, abstract, keywords
+\newfontfamily\titlefont[]{LiberationSans-Bold.ttf}
+\newcommand{\email}[1]{\gdef\@email{{#1}}}
+\newcommand{\organization}[1]{\gdef\@organization{{#1}}}
+\renewcommand{\abstract}[1]{\gdef\@abstract{{#1}}}
+\newcommand{\keywords}[1]{\gdef\@keywords{{#1}}}
+\newcommand{\titleEng}[1]{\gdef\@titleEng{{#1}}}
+\newcommand{\authorEng}[1]{\gdef\@authorEng{{#1}}}
+\newcommand{\organizationEng}[1]{\gdef\@organizationEng{{#1}}}
+\newcommand{\abstractEng}[1]{\gdef\@abstractEng{{#1}}}
+\newcommand{\keywordsEng}[1]{\gdef\@keywordsEng{{#1}}}
+\makeatletter
+\def\@maketitle
+{
+  {\centering
+    \vskip 12pt
+    {\titlefont\fontsize{14}{16.8}\selectfont\@title}
+    \vskip 6pt
+    {\normalfont\fontsize{10}{12}\selectfont\@author}
+    \par
+    {\normalfont\fontsize{10}{12}\selectfont\@email}
+    \par
+    {\normalfont\fontsize{10}{12}\selectfont\@organization}
+    \par
+  }
+  \vskip 6pt
+  \par
+  {\textit\@abstract}
+  \vskip 6pt
+  \par
+  {\textit{\textbf{Ключевые слова:} \@keywords}}
+
+  {\centering
+    \vskip 12pt
+    {\titlefont\fontsize{14}{16.8}\selectfont\@titleEng}
+    \vskip 6pt
+    {\normalfont\fontsize{10}{12}\selectfont\@authorEng}
+    \par
+    {\normalfont\fontsize{10}{12}\selectfont\@email}
+    \par
+    {\normalfont\fontsize{10}{12}\selectfont\@organizationEng}
+    \par
+  }
+  \vskip 6pt
+  \par
+  {\textit\@abstractEng}
+  \vskip 6pt
+  \par
+  {\textit{\textbf{Keywords:} \@keywordsEng}}
+  \vskip 12pt
+}
+\makeatother
+
+%% About authors
+\newcommand{\authorsInfo}[1]{\gdef\@authorsInfo{{#1}}}
+\newcommand{\aboutAuthors}{\vskip -2em\section*{Об авторах}\@authorsInfo}
+
+%% Sections
+\usepackage{titlesec}
+\titleformat{\section}{\titlefont\fontsize{10}{12}\selectfont}{\thesection. }{0pt}{}
+\titlespacing{\section}{0pt}{9pt}{6pt}
+
+%% Lists
+\usepackage{enumitem}
+\setlist[enumerate]{nolistsep, leftmargin=*}
+
+%% No page numbering: everything related to paging will be added on post-processing stage
+\pagenumbering{gobble}
+
+%% Bibliorgaphy
+\usepackage[numbers,sort&compress]{natbib}
+\renewcommand{\bibsection}{\section{Литература}}
+\setlength{\bibsep}{0pt}
+
+%% Figures
+\usepackage{graphicx}
+\usepackage{float}
+\DeclareTextCommandDefault{\nobreakspace}{\leavevmode\nobreak\ }
+\usepackage[justification=centering, labelfont=bf]{caption}
+\captionsetup{figurewithin=none, labelsep=period}

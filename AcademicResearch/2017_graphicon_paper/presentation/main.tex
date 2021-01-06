@@ -1,0 +1,441 @@
+% Класс документа с параметрами: кегль шрифта, шрифт с засечками для формул,
+% соотношение сторон слайда
+\documentclass[14pt,mathserif,aspectratio=43]{beamer}
+
+% Кодировка файла
+\usepackage[utf8]{inputenc}
+% Переносы для русского языка
+\usepackage[russian]{babel}
+
+\usepackage{xcolor}
+% Цвет логотипа лаборатории
+\definecolor{lab-blue}{RGB}{30,97,182}
+% Ищется в яндексе по запросу «травяной цвет»
+\definecolor{grass}{RGB}{93,161,48}
+
+\usepackage[T1]{fontenc}
+% Шрифт для формул
+\usepackage[bitstream-charter]{mathdesign}
+
+% Математические символы
+\usepackage{amsmath}
+
+% Перечёркивание текста
+\usepackage{ulem}
+
+% Графики
+\usepackage{pgfplots}
+\pgfplotsset{width=9cm,compat=1.9}
+
+\usepackage{epstopdf}
+
+% Основной цвета beamer'а (по умолчанию — синий)
+\setbeamercolor{structure}{fg=black}
+
+% Путь к картинкам
+\graphicspath{{images/}}
+
+% Нумерация слайдов
+\setbeamertemplate{footline}{%
+\raisebox{7pt}{\makebox[\paperwidth]{%
+\hfill\makebox[10pt]{\scriptsize\textcolor{gray}{\insertframenumber~~~~}}}}}
+
+% Начинать нумерацию слайдов не с титульного слайда
+% \let\otp\titlepage
+% \renewcommand{\titlepage}{\otp\addtocounter{framenumber}{-1}}
+
+% Сноска без номера
+\newcommand\articlenote[1]{%
+  \begingroup%
+  \renewcommand\thefootnote{}\footnote{#1}%
+  \addtocounter{footnote}{-1}%
+  \endgroup%
+}
+
+% Убрать навигацию beamer'а по умолчанию
+\beamertemplatenavigationsymbolsempty
+
+% Параметры для создания титульной страницы
+\title{\normalsize{Глубинные двоичные дескрипторы изображения человека для его повторной идентификации и сопровождения в видео}}
+\author{\small{Лютов Владимир Сергеевич$^1$, \\Конушин Антон Сергеевич$^{1,2}$}}
+
+\institute{
+    \small{$^1$МГУ, $^2$ВШЭ}
+
+    \smallskip
+
+    \includegraphics[scale=0.6]{lab_logo.eps}
+}
+
+% Время
+\date{\small{26 сентября 2017 г.}}
+
+\logo{\includegraphics[height=1cm]{lab_logo.eps}\vspace{220pt}}
+
+\begin{document}
+
+%-------------------------------------------------------------------------------
+\begin{frame}[plain]
+    \titlepage
+\end{frame}
+
+\section{Основное}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Повторная идентификация человека}
+
+    Требуется сопоставить обнаружения людей, в том числе на разных камерах
+
+    % Вертикальный пробел. Есть ещё \smallskip и \bigskip
+    \bigskip
+
+    \includegraphics[width=0.5\textwidth]{image1.png}
+    \includegraphics[width=0.5\textwidth]{image4.png}
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Дескриптор изображения человека}
+
+    \textcolor{lab-blue}{Повторная идентификация состоит из}
+    
+    \begin{itemize}
+        \item Построение дескриптора изображения человека
+        \item Поиск по базе дескрипторов
+    \end{itemize}
+    
+    % Вертикальный пробел. Есть ещё \smallskip и \bigskip
+    \bigskip
+    
+    \begin{center}
+        \includegraphics[width=\textwidth]{lutov-image2.eps}
+    \end{center}
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\begin{frame}[label=reason]{Для чего нужно решать задачу}
+
+    \begin{itemize}
+        \item Сценарий видеонаблюдения за объектом
+        \item Поиск человека (преступника или пропавшего без вести) по записям с видеокамер
+        \item Подсчет людей на мероприятиях
+    \end{itemize}
+    
+    \begin{center}
+        \includegraphics[width=0.7\textwidth]{image10.png}
+    \end{center}
+    
+    \hyperlink{hard_things}{\beamerbutton{Трудности}}
+
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Формальная постановка}
+
+    \begin{itemize}
+        \item Вход: изображение человека $I \in \mathbb{R}^{N \times M \times 3}$.
+        \item Выход: вектор-дескриптор $\nu = A(I) \in \mathbb{R}^K$
+        \item $\max \mathbb{P}(\rho(A(I_1), A(I_2)) < \rho(A(J_1), A(J_2)))$, где \\
+        $I_1, I_2$ --- изображения одного человека\\
+        $J_1, J_2$ --- изображения разных людей\\
+        $\rho(\cdot, \cdot)$ --- выбранная метрика, например, $L_2$
+    \end{itemize}
+    
+    \begin{center}
+        \includegraphics[width=0.8\textwidth]{image5.eps}
+    \end{center}
+    
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Цель работы}
+
+    Усовершенствование алгоритмов построения дескрипторов изображения человека для повышения скорости работы алгоритма
+    
+    \begin{center}
+        \includegraphics{image6.eps}
+    \end{center}
+    
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Обзор существующих подходов}
+
+    \textcolor{lab-blue}{Методы без машинного обучения}
+
+    \begin{itemize} \footnotesize 
+        \item[] Показывают недостаточную точность, по сравнению с аналогами [Srikrishna, 2016]
+    \end{itemize}
+    
+    \textcolor{lab-blue}{Методы с машинным неглубинным обучением}
+    
+    \begin{itemize} \footnotesize 
+        \item[] Наилучший -- иерархический гауссовый дескриптор [Matsukawa, 2016]
+    \end{itemize}
+    
+    \textcolor{lab-blue}{Методы с глубинным обучением}
+    
+    \begin{itemize} \footnotesize 
+        \item[] Наилучшие -- модификации современных классифицирующих нейросетей [Hermans, 2017][Zhang,2017]
+        \item[] Предложенный метод -- модификация VGG16
+    \end{itemize}
+    
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Предложенный алгоритм}
+    
+    \begin{center}
+        \includegraphics[height=0.85\textheight]{image3.eps}
+    \end{center}
+    
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\begin{frame}[label=market1501_benchmark]{Оценка вещественных дескрипторов}
+
+    \begin{tikzpicture}
+    \begin{axis}[
+        ybar, axis on top,
+        font=\small,
+        height=0.7\textheight,width=\textwidth,
+        bar width=0.7cm,
+        ymajorgrids,
+        major grid style={draw=white},
+        enlarge y limits={value=.1,upper},
+        ymin=0, ymax=100, ytick={0,20,40,60,80,100},
+        axis x line*=bottom,
+        y axis line style={opacity=0},
+        tickwidth=0pt,
+        enlarge x limits=true,
+        legend style={
+            at={(0.5,-0.2)},
+            anchor=north,
+            legend columns=1,
+            /tikz/every even column/.append style={column sep=0.5cm}
+        },
+        ylabel={rank-1, \%},
+        symbolic x coords={
+            GOG,
+            MobileNet+DML,
+            ResNet+TL,
+            Предл. метод
+        },
+        xtick=data,
+        nodes near coords={
+            \pgfmathprintnumber[precision=1]{\pgfplotspointmeta}
+        }
+    ]
+    \addplot 
+    	coordinates {
+        	(GOG,58.6)
+        	(Предл. метод,85.3)
+        	(ResNet+TL,86.67)
+        	(MobileNet+DML,87.73)
+        };
+    \addplot 
+    	coordinates {
+        	(MobileNet+DML,91.66)
+        	(ResNet+TL,91.75)
+        	(Предл. метод,92.91)
+        };
+    \legend{Запрос из одного изображения,Запрос из множества изображений}
+    \end{axis}
+    \end{tikzpicture}
+    
+    \hyperlink{etalon_collection}{\beamerbutton{Эталонные коллекции}}
+    
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\begin{frame}[label=binary_precision]{Оценка бинарных дескрипторов}
+
+    \begin{center}
+    \begin{tikzpicture}
+    \begin{axis}[
+        axis on top,
+        xlabel={Размер дескриптора, бит},
+        ylabel={Точность rank-1, \%},
+        xmin=0, xmax=600,
+        ymin=48, ymax=87,
+        xtick={0, 128,256,512},
+        ytick={65,70,75,80,85},
+        legend pos=south east,
+        ymajorgrids=true,
+        grid style=dashed,
+        cycle list name=color,
+        axis lines=left,
+        axis y discontinuity=parallel,
+        every axis plot/.append style={line width=2pt},
+        % axis line style={opacity=0},
+    ]
+     
+    \addplot
+        coordinates {
+        (128,75.2)(256,79.15)(512,83.4)
+        };
+    \addlegendentry{Предложенный алгоритм}
+    
+    \addplot
+        coordinates {
+        (128,71.79)(256,78.50)(512,83.9)
+        };
+    \addlegendentry{Алгоритм НБВ}
+
+    \addplot
+        coordinates {
+        (128,68.34)(256,75.15)(512,78.50)
+        };
+    \addlegendentry{Выделение гл. компонент}
+    
+    \addplot
+        coordinates {
+        (128,65.17)(256,77.46)(512,83.72)
+        };
+    \addlegendentry{Случайный лес}
+    
+    \end{axis}
+    \end{tikzpicture}
+    \end{center}
+    
+    \hyperlink{binary_descriptor}{\beamerbutton{Методы бинаризации}}
+    
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Оценка возможности переноса на \\ другие независимые данные}
+
+    \begin{center}
+    \begin{tikzpicture}
+    \begin{axis}[
+        ybar, axis on top,
+        font=\footnotesize,
+        height=0.7\textheight,width=\textwidth,
+        bar width=0.7cm,
+        ymajorgrids,
+        major grid style={draw=white},
+        enlarge y limits={value=.1,upper},
+        ymin=0, ymax=100, ytick={0,20,40,60,80,100},
+        axis x line*=bottom,
+        y axis line style={opacity=0},
+        tickwidth=0pt,
+        enlarge x limits=true,
+        legend style={
+            at={(0.5,-0.2)},
+            anchor=north,
+            legend columns=-1,
+            /tikz/every even column/.append style={column sep=0.5cm}
+        },
+        ylabel={rank-1, \%},
+        symbolic x coords={
+            Market/Market,
+            Market/CUHK,
+            CUHK/CUHK,
+            CUHK/Market},
+        xtick=data,
+        nodes near coords={
+            \pgfmathprintnumber[precision=1]{\pgfplotspointmeta}
+        }
+    ]
+    \addplot 
+    	coordinates {
+        	(Market/Market,85.33)
+        	(Market/CUHK,84.91)
+        	(CUHK/CUHK,92.67)
+        	(CUHK/Market,57.92)
+        };
+    \addplot 
+    	coordinates {
+    	    (Market/Market,83.72)
+    	    (Market/CUHK,80.45) 
+    		(CUHK/CUHK,89.94)
+    		(CUHK/Market,48.30)
+    	};
+    \legend{Вещественный,Бинарный}
+    \end{axis}
+    \end{tikzpicture}
+    \end{center}
+    
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Программная реализация}
+
+    \begin{itemize}
+        \item Обучение и тестирование занимает 2 часа
+        \item Построение одного дескриптора -- 1 мс
+        \item Код доступен по ссылке: \href{https://github.com/vslutov/reidentification}{https://github.com/vslutov/reidentification}
+    \end{itemize}
+    
+    \begin{center}
+        \includegraphics[height=0.2\textheight]{image7.eps}
+        \vspace{2pt}
+        \includegraphics[height=0.2\textheight]{image8.eps}
+        \vspace{2pt}
+        \includegraphics[height=0.2\textheight]{image9.eps}
+    \end{center}
+    
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\begin{frame}{Результаты}
+    \begin{itemize}
+        \item С задачей поиска по нескольким изображениям алгоритм справился лучше аналогов по мере качества rank‑1 на тестовой коллекции Market1501
+        \item Проведенная экспериментальная оценка показала, что алгоритм применим на других данных, полученных из независимого источника
+        \item Бинарная модификация уступила базовому алгоритму по точности, но полученные дескрипторы занимают на 1--2 порядка меньше памяти
+    \end{itemize}
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\section{Скрытые слайды}
+
+%-------------------------------------------------------------------------------
+\begin{frame}[label=binary_descriptor]{Методы бинаризации}
+
+    \begin{itemize}
+        \item Выделение значимых элементов методом случайного леса
+        \item Уменьшение размерности методом главных компонент и бинаризация
+        \item Нейросетевая бинаризация с помощью добавления специальных слоев -- полносвязной сигмоиды, алгоритма непосредственного бинарного встраивания
+    \end{itemize}
+    
+    \hyperlink{binary_precision}{\beamerbutton{Назад}}
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\begin{frame}[label=etalon_collection]{Критерии и эталонная коллекция}
+
+    \small
+    
+    \begin{tabular}{ p{2.5cm} | p{1.5cm} p{1.5cm} p{1.5cm} p{1.5cm} } 
+        Коллекция данных & VIPeR & PRID & CUHK03 & Market1501 \\
+        \hline
+        Число личностей & 632 & 385 & 1467 & $\mathbf{1501}$ \\
+        Примеров на человека & 1 & 1 & 2-10 & $\mathbf{\approx 15}$ \\
+        Размер кадров & $128\times48$ & $128\times64$ & $160\times60$ & $128\times64$ \\
+        Число камер & 2 & 2 & 2 & $\mathbf{6}$ \\
+    \end{tabular}
+    
+    \bigskip
+
+    В качестве эталонной коллекции выбрана наиболее полная -- Market1501
+    
+    \smallskip
+    
+    В качестве основной меры качества выбрана стандартная мера на этой коллекции rank-1: часть запросов, для которой первый ответ алгоритма ранжирования верный 
+    
+    \hyperlink{market1501_benchmark}{\beamerbutton{Назад}}
+    
+\end{frame}
+
+%-------------------------------------------------------------------------------
+\begin{frame}[label=hard_things]{Трудности}
+
+    \begin{itemize}
+        \item Низкое разрешение камер
+        \item От камеры к камере меняется освещение, ракурс, окружение (возможны перекрытия)
+    \end{itemize}
+    
+    \hyperlink{reason}{\beamerbutton{Назад}}
+    
+\end{frame}
+
+\end{document}

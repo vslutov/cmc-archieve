@@ -1,0 +1,51 @@
+%%% Поля и разметка страницы %%%
+\usepackage{lscape}		% Для включения альбомных страниц
+\usepackage{geometry}	% Для последующего задания полей
+
+%%% Кодировки и шрифты %%%
+\usepackage{cmap}						% Улучшенный поиск русских слов в полученном pdf-файле
+\usepackage[T2A]{fontenc}				% Поддержка русских букв
+\usepackage{fontenc}				% Поддержка русских букв
+\usepackage[utf8]{inputenc}				% Кодировка utf8
+\usepackage[english, russian]{babel}	% Языки: русский, английский
+%\usepackage{pscyr}						% Красивые русские шрифты
+
+%%% Математические пакеты %%%
+\usepackage{amsthm,amsfonts,amsmath,amssymb,amscd} % Математические дополнения от AMS
+
+%%% Оформление абзацев %%%
+\usepackage{indentfirst} % Красная строка
+
+%%% Общее форматирование
+\usepackage[singlelinecheck=off,center]{caption}	% Многострочные подписи
+\usepackage{soul}									% Поддержка переносоустойчивых подчёркиваний и зачёркиваний
+
+%%% Библиография %%%
+\usepackage{cite} % Красивые ссылки на литературу
+\usepackage[nottoc]{tocbibind}
+\makeatletter
+\bibliographystyle{utf8gost705u}	% Оформляем библиографию в соответствии с ГОСТ 7.0.5
+\renewcommand{\@biblabel}[1]{#1.}	% Заменяем библиографию с квадратных скобок на точку:
+\makeatother
+
+%%% Гиперссылки %%%
+\usepackage[linktocpage=true,plainpages=false,pdfpagelabels=false]{hyperref}
+
+%%% Изображения %%%
+\usepackage{graphicx} % Подключаем пакет работы с графикой
+\graphicspath{{images/}} % Пути к изображениям
+
+%%% Заголовки и футеры %%%
+\usepackage{fancyhdr}
+
+%%% Графики %%%
+\usepackage{pgfplots}
+\usepackage{epstopdf}
+
+%%% Кодировки и шрифты %%%
+\renewcommand{\rmdefault}{ftm} % Включаем Times New Roman
+
+%%% Выравнивание и переносы %%%
+\sloppy					% Избавляемся от переполнений
+\clubpenalty=10000		% Запрещаем разрыв страницы после первой строки абзаца
+\widowpenalty=10000		% Запрещаем разрыв страницы после последней строки абзаца

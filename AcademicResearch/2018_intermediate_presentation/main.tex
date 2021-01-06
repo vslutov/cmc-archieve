@@ -1,0 +1,247 @@
+% Класс документа с параметрами: кегль шрифта, шрифт с засечками для формул,
+% соотношение сторон слайда
+\documentclass[14pt,mathserif,aspectratio=43,unicode]{beamer}
+%\setbeameroption{show notes} % for development
+\setbeameroption{show only notes} % for materials
+
+%%% Кодировки и шрифты %%%
+\usepackage{cmap}				% Улучшенный поиск русских слов в полученном pdf-файле
+\usepackage[T2A,T1]{fontenc}			% Поддержка русских букв
+\usepackage[utf8]{inputenc}				% Кодировка utf8
+\usepackage[english, russian]{babel}	% Языки: русский, английский
+
+\usepackage{xcolor}
+% Цвет логотипа лаборатории
+\definecolor{lab-blue}{RGB}{30,97,182}
+% Ищется в яндексе по запросу «травяной цвет»
+\definecolor{grass}{RGB}{93,161,48}
+
+% Математические символы
+\usepackage{amsthm,amsfonts,amsmath,amssymb,amscd} % Математические дополнения от AMS
+
+% Перечёркивание текста
+\usepackage{ulem}
+
+% Графики
+\usepackage{pgfplots}
+\pgfplotsset{width=9cm,compat=1.9}
+\usepackage{epstopdf}
+
+%%% Поля и разметка страницы %%%
+\usepackage{lscape}		% Для включения альбомных страниц
+\usepackage{geometry}	% Для последующего задания полей
+
+%%% Оформление абзацев %%%
+\usepackage{indentfirst} % Красная строка
+
+%%% Общее форматирование
+\usepackage[singlelinecheck=off,center]{caption}	% Многострочные подписи
+\usepackage{soul}									% Поддержка переносоустойчивых подчёркиваний и зачёркиваний
+ 
+%%% Изображения %%%
+\usepackage{graphicx} % Подключаем пакет работы с графикой
+\graphicspath{{images/}} % Пути к изображениям
+\usepackage{xmpmulti}
+
+%%% Заголовки и футеры %%%
+\usepackage{fancyhdr}
+
+%%% Код
+\usepackage{listings}
+\lstset{language=Python,
+        keywordstyle=\color{grass}\ttfamily,
+        stringstyle=\color{red}\ttfamily,
+        commentstyle=\color{green}\ttfamily,
+        morecomment=[l][\color{magenta}]{\#},
+        numbers=left, 
+        numberstyle=\color{lightgray}\tiny, 
+        numbersep=5pt,
+        basicstyle=\footnotesize
+}
+
+%%% Filter warnings
+\usepackage{silence,lmodern}
+\WarningFilter{biblatex}{Patching footnotes failed}
+
+%%% Библиография
+\usepackage{hyperref}
+\usepackage{csquotes}
+\usepackage[backend=biber,
+            style=gost-footnote-min,
+            sorting=none,
+            hyperref=true,
+            url=false]{biblatex}
+\addbibresource{bibliography.bib}
+%\AtEveryCitekey{\iffootnote{\clearfield{url}}{}}
+
+%%% Кодировки и шрифты %%%
+\renewcommand{\rmdefault}{ftm} % Включаем Times New Roman
+
+%%% Выравнивание и переносы %%%
+\sloppy					% Избавляемся от переполнений
+\clubpenalty=10000		% Запрещаем разрыв страницы после первой строки абзаца
+\widowpenalty=10000		% Запрещаем разрыв страницы после последней строки абзаца
+
+% Основной цвета beamer'а (по умолчанию — синий)
+\setbeamercolor{structure}{fg=black}
+
+% Нумерация слайдов
+\setbeamertemplate{footline}{%
+\raisebox{7pt}{\makebox[\paperwidth]{%
+\hfill\makebox[10pt]{\scriptsize\textcolor{gray}{\insertframenumber~~~~}}}}}
+
+% Начинать нумерацию слайдов не с титульного слайда
+% \let\otp\titlepage
+% \renewcommand{\titlepage}{\otp\addtocounter{framenumber}{-1}}
+
+% Сноска без номера
+%\newcommand\articlenote[1]{%
+%  \begingroup%
+%  \renewcommand\thefootnote{}\footnote{#1}%
+%  \addtocounter{footnote}{-1}%
+%  \endgroup%
+%}
+
+% Убрать навигацию beamer'а по умолчанию
+\beamertemplatenavigationsymbolsempty
+
+% Сноска без номера
+\newcommand\articlenote[1]{%
+  \begingroup%
+  \renewcommand\thefootnote{}\footnote{#1}%
+  \addtocounter{footnote}{-1}%
+  \endgroup%
+}
+ 
+% Параметры для создания титульной страницы
+\title{Нейросетевые методы поиска похожих людей в видео}
+\author{Лютов Владимир Сергеевич}
+
+\institute{
+    \small{ВМК МГУ}
+
+    \smallskip
+
+    \includegraphics[scale=0.6]{lab_logo.eps}
+}
+
+% Время
+\date{\small{19 декабря 2018}}
+
+\logo{\includegraphics[height=1cm]{lab_logo.eps}\vspace{220pt}}
+
+\newcommand{\w}{\mathbf{w}}
+\newcommand{\T}{\mathbf{t}}
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\pHi}{\mathbf{\phi}}
+\newcommand{\Eps}{\mathbf{\epsilon}}
+\newcommand{\y}{\mathbf{y}}
+
+\begin{document}
+
+
+\begin{frame}[plain]
+    \titlepage
+\end{frame}
+
+\section{О задаче}
+
+\begin{frame}{Классификация спецодежды}
+
+    \begin{center}
+        \includegraphics[width=\textwidth]{spec.eps}
+    \end{center}
+    
+\end{frame}
+
+\note[itemize]{
+    \item Необходимо: безопасность на предприятиях, прибыль в магазинах
+    \item Актуальность: требуется много данных для каждой задачи
+}
+
+\begin{frame}{Универсальный дескриптор}
+
+    \begin{center}
+        \includegraphics[width=\textwidth]{algo.eps}
+    \end{center}
+    
+\end{frame}
+
+\begin{frame}{Цели и задачи}
+
+    Цель: усовершенствование нейросетевых методов поиска похожих людей в видео.
+    
+    Задачи:
+
+    \begin{itemize}
+        \item Построить и исследовать универсальный алгоритм классификации изображений людей в спецодежде.
+        \item Адаптировать алгоритм для работы с изображениями людей, частично перекрытых предметами.
+        \item Исследовать алгоритмы определения степени уверенности классификации для задачи классификации спецодежды.
+    \end{itemize}
+    
+\end{frame}
+
+\begin{frame}{Эталонные коллекции}
+
+    \small
+
+    \begin{tabular}{ p{2.5cm} | p{1.5cm} p{1.5cm} p{1.5cm} p{1.5cm} } 
+        Название & Кол-во человек & Кол-во кадров & Кол-во камер & Разрешение \\
+        \hline
+        CUHK03 & 1360 & 131647 & 2 & ~100x300 \\
+        Market-1501 & 1501 & 32668 & 6 & 128x64 \\
+        DukeMTMC-ReID & 1812 & 38922 & 8 & ~75x200 \\
+        Union & 4673 & 84754 & 16 & vary \\
+        Detected & 4673 & 84754 & 16 & vary \\
+        Mars & 1261 & 1191003 & 6 & 128x256
+    \end{tabular}
+    
+    Для классификации составлена коллекция из 6821 изображений и 4 классов (по мотивам конкурса на Kaggle).
+    
+\end{frame}
+
+\note[itemize]{
+    \item В рамках этой работы из коллекций CUHK03, Market-1501 и DukeMTMC-ReID составлена объединенная коллекция Union.
+    \item Так как в этих коллекциях применяются разные алгоритмы обнаружения людей, все изображения людей были дополнительно обработаны единым алгоритмом обнаружения людей.
+    \item Для оценки качества классификации была составлена отдельная коллекция из 6821 изображений.
+}
+
+\begin{frame}{Работа c Mars}
+
+    \small
+
+    \begin{center}
+        \includegraphics[width=0.5\textwidth]{cmc.png}
+        \includegraphics[width=0.5\textwidth]{roc.png}
+    \end{center}
+    
+\end{frame}
+
+\note[itemize]{
+    \item 100K * 400K * 1000
+}
+
+\begin{frame}{Эксперименты с AM-Softmax}
+
+    \begin{center}
+        \includegraphics[width=0.5\textwidth]{am-cmc.png}
+        \includegraphics[width=0.5\textwidth]{am-roc.png}
+    \end{center}
+    
+\end{frame}
+
+\begin{frame}{Выводы}
+
+    \begin{itemize}
+        \item Составлена коллекция для определения спецодежды
+        \item Подготовлен код для работы с датасетом Mars
+        \item Улучшен алгоритм построения дескриптора
+    \end{itemize}
+    
+\end{frame}
+
+\note[itemize]{
+    \item Время заняться нужными экспериментами
+}
+
+\end{document}
